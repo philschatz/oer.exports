@@ -639,8 +639,7 @@ Combination of formal.object and formal.object.heading -->
      (ie "Check for Understanding")
      have a larger number. overriding docbook-xsl/fo/lists.xsl
      see <xsl:template match="d:orderedlist/d:listitem">
- -->
- 
+ --> 
 <xsl:template match="c:note[@type='art']">
 <xsl:variable name="classes">
     <xsl:if test="@type">
@@ -652,7 +651,6 @@ Combination of formal.object and formal.object.heading -->
       <xsl:value-of select="@class"/>
     </xsl:if>
 </xsl:variable>
-
     <div class="title">
       <span class="cnx-gentext-tip-t">
         <xsl:apply-templates select="db:title/node()|db:label/node()"/>
