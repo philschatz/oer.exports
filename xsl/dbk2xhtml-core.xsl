@@ -640,6 +640,33 @@ Combination of formal.object and formal.object.heading -->
      have a larger number. overriding docbook-xsl/fo/lists.xsl
      see <xsl:template match="d:orderedlist/d:listitem">
  -->
+ 
+<xsl:template match="c:note[@type='art']">
+<xsl:variable name="classes">
+    <xsl:if test="@type">
+      <xsl:text> </xsl:text>
+      <xsl:value-of select="@type"/>
+    </xsl:if>
+    <xsl:if test="@class">
+      <xsl:text> </xsl:text>
+      <xsl:value-of select="@class"/>
+    </xsl:if>
+</xsl:variable>
+
+    <div class="title">
+      <span class="cnx-gentext-tip-t">
+        <xsl:apply-templates select="db:title/node()|db:label/node()"/>
+      </span>
+    </div>
+    <div class="body">
+    <db:figure><xsl:apply-templates/></db:figure>
+    </div>
+<c:exercise id="{@xml:id}" class="exercise{$classes}" type="{@type}">
+   <xsl:apply-templates/>  
+ </c:exercise>
+ <div><xsl:text>testing 1,2,3 =)</xsl:text></div>
+</xsl:template><!-- jb -->
+ 
 <xsl:template match="ext:exercise/ext:problem/d:orderedlist/d:listitem" mode="item-number">
   <div class="cnx-gentext-listitem cnx-gentext-n">
     <xsl:apply-imports/>
