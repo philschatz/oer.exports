@@ -10,6 +10,9 @@
   prince-text-replace: ":9680" "";
   string-set: cnx-collection-url attr(href);
 }
+div.section div.abstract {
+  color: red !important;
+}
 /* Don't print module asterix (link to attribution) */
 sup a {
   display: none;
@@ -1266,7 +1269,9 @@ div.book > div.toc > ul > li.toc-appendix > ul {
 .span-all {
   column-span: all !important;
   -webkit-column-span: all !important;
+  float: prince-snap;
 }
+/************************/
 .title {
   text-align: left !important;
 }

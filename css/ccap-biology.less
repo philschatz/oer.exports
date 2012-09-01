@@ -28,7 +28,10 @@
 .span-all{
   column-span: all !important;
   -webkit-column-span: all !important;	
+  float:prince-snap; //default top/bottom snap - shortest distance takes precedence 
 }
+
+/************************/
 
 .title{ text-align: left !important; }
 
@@ -275,6 +278,7 @@ background-color: @light-green;
   &:before{
   margin-left:-1.25em;//set to align with bullets of listitems
   font-family: Liberation Serif, serif;
+  color: black !important;
   content: "By the end of this section you should know how to:"; //to do: best to generate in docbook?
  }
  }
