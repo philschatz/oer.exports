@@ -10,8 +10,8 @@
   prince-text-replace: ":9680" "";
   string-set: cnx-collection-url attr(href);
 }
-div.section div.abstract {
-  color: red !important;
+div.section .titlepage .abstract {
+  display: none !important;
 }
 /* Don't print module asterix (link to attribution) */
 sup a {
@@ -1619,6 +1619,8 @@ p {
 /******Learning Objectives *********/
 div.section .titlepage .abstract {
   font-size: 1.10em;
+  display: block !important;
+  margin: 1em 0em;
 }
 div.section .titlepage .abstract div.itemizedlist {
   padding: 1em;
@@ -1627,6 +1629,7 @@ div.section .titlepage .abstract div.itemizedlist {
 div.section .titlepage .abstract ul.itemizedlist:before {
   margin-left: -1.25em;
   font-family: Liberation Serif, serif;
+  color: black !important;
   content: "By the end of this section you should know how to:";
 }
 div.section .titlepage .abstract li.listitem {
@@ -1742,6 +1745,7 @@ blockquote::after {
   -webkit-column-span: all;
   width: 100% !important;
   max-width: none !important;
+  padding-bottom: 1.5em;
 }
 div.introduction h3.title {
   content: "Introduction";
