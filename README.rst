@@ -40,3 +40,10 @@ From the admin page use the input box in "Deposit new content from a URL" to poi
   http://philschatz.github.com/oer.interactive/example.cnxml   # CNXML with cool graphics
   http://cnx.org/content/m9003/2.68/module_export?format=plain # Module CNXML file
   http://cnx.org/content/col10514/1.4/source                   # Collection of test modules
+
+Once you submit it, each piece of content goes through 4 phases:
+* /intermediate/ Converts CNXML to HTML (go to /intermediate/# to see either the list of content that is fone or see the HTML of those that are completed)
+* /content/ Converts canvases and dynamic content to SVG, renames local hrefs to be absolute, requests xincluded content be converted
+* /assembled/ Includes the xincluded content into 1 big file
+* /content.pdf Uses HTML at /assembled/# to create a PDF (TODO)
+* /content.epub Uses HTML at /assembled/# to create an EPUB
