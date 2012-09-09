@@ -209,7 +209,6 @@ page.open encodeURI(inputUrl), (status) ->
           $('#MathJax_Message').remove() # This function gets called before MathJax removes the "Typesetting 100%" message
           # Copy all the SVG glyphs to multiple SVG elmeents
           # See http://www.w3.org/TR/SVG11/struct.html#UseElement
-          $('#MathJax_SVG_Hidden').remove()
           $uses = $('.MathJax_SVG svg use')
           $uses.each () ->
             $use = $(@)
@@ -219,6 +218,9 @@ page.open encodeURI(inputUrl), (status) ->
             $g = $("<g transform='#{transform} translate(#{x}, #{y})'></g>")
             $g.append $($use.attr('href'))[0].cloneNode(true)
             $use.replaceWith $g
+          # Remove the hidden MathJax elements
+          $('#MathJax_SVG_Hidden').remove()
+          $('#MathJax_SVG_glyphs').parent().remove()
           callback()
       catch e
         console.error "ERROR Happened"
