@@ -86,12 +86,14 @@
 
 
 /* Introduction banner */
-h1.title { //ccap-chapter
+.chapter > .title { //ccap-chapter
+  display: block;
+  color: white;
   background-color: @orange;
 }
 
 .book > * > .titlepage .cnx-gentext-t::before,
-h1.title .cnx-gentext-n { //.ccap-chapter-number
+.chapter > .title::before { //.ccap-chapter-number
   color: black;
   padding-right: 1em;
 }
@@ -140,7 +142,34 @@ a {
 /****************** Modern-Textbook classes ****************/
 
 /* Numbered sections should have the number in blue */
-h2::before {
+.preface, .chapter, .appendix {
+  // 3.1 Animals
+  > .section,
+  > section {
+    > .title {
+      display: block;
+      font-weight: bold;
+      font-size: 12pt;
+    
+      &::before {
+        color: @blue;
+      }
+    }
+
+    // Modules use the h# elements for titles and for some reason don't add the titile class.
+    > .section,
+    > section {
+      > .title {
+        display: block;
+        font-size: 10pt;
+        color: @blue;
+      }
+    }
+
+  }
+}
+
+.chapter > section > .title::before {
   color: @blue;
 }
 
