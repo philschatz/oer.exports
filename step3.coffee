@@ -126,13 +126,15 @@ page.open encodeURI(inputUrl), (status) ->
         if id
           href = href + '#' + id
       
-      console.log "Replacing [#{$node.attr(attrName)}] with [#{href}]"
+      if $node.attr(attrName) != href
+        console.log "Replacing [#{$node.attr(attrName)}] with [#{href}]"
       $node.attr(attrName, href)
     
     resolveIds = (docId, $el) ->
       $el.find('*[id]').each () ->
         $node = $(@)
-        $node.attr('id', "content-#{docId}-#{$node.attr('id')}")
+        if not $node.parents('svg').length
+          $node.attr('id', "content-#{docId}-#{$node.attr('id')}")
 
       $el.find('a[href]').each () ->
         $node = $(@)

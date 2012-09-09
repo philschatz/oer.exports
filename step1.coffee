@@ -208,16 +208,17 @@ page.open encodeURI(inputUrl), (status) ->
           console.log "Finished Processing math!  "
           $('#MathJax_Message').remove() # This function gets called before MathJax removes the "Typesetting 100%" message
           # Copy all the SVG glyphs to multiple SVG elmeents
+          # See http://www.w3.org/TR/SVG11/struct.html#UseElement
           $('#MathJax_SVG_Hidden').remove()
-          $glyphs = $('#MathJax_SVG_glyphs')
-          console.log "GLYPHS.length=#{$glyphs.length}"
-          if $glyphs.length
-            $svg = $('.MathJax_SVG svg')
-            console.log "SVG.length=#{$svg.length}"
-            $svg.each () ->
-              $el = $(@)
-              $el.prepend $glyphs[0].cloneNode(true)
-          $glyphs.remove()
+          $uses = $('.MathJax_SVG svg use')
+          $uses.each () ->
+            $use = $(@)
+            x = $use.attr('x') or 0
+            y = $use.attr('y') or 0
+            transform = $use.attr('transform') or ''
+            $g = $("<g transform='#{transform} translate(#{x}, #{y})'></g>")
+            $g.append $($use.attr('href'))[0].cloneNode(true)
+            $use.replaceWith $g
           callback()
       catch e
         console.error "ERROR Happened"
