@@ -16,7 +16,7 @@ module.exports = exports = (argv) ->
 
 
   #### Spawns ####
-  env = {}
+  env = { }
   
   spawnGenerateStep = (step, fromUrl, toUrl, id) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
@@ -31,6 +31,8 @@ module.exports = exports = (argv) ->
   intermediate = {}
   content = {}
   assembly = {}
+  globalLookups = {}
+  lookups = {}
   hashId = 0
 
 
@@ -41,10 +43,13 @@ module.exports = exports = (argv) ->
   # best to supply sane defaults for any arguments that are missing.
   argv = require('./defaultargs')(argv)
   
-  newContentPromise = () ->
-    id = hashId++
-    #content[id] = {}
-    id
+  addToGlobal = (href) ->
+    if href not of globalLookups
+      id = hashId++
+      globalLookups[href] = id
+      id
+    else
+      globalLookups[href]
 
 
   #### Express configuration ####
@@ -96,10 +101,15 @@ module.exports = exports = (argv) ->
   # This can be any URL (for federation)
   app.post('/deposit', (req, res, next) ->
     href = req.body.url
-    console.log "Received deposit request for #{href}"
-    id = newContentPromise()
-    spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id)
-    res.send "#{argv.u}/content/#{id}"
+    originalId = req.body.original
+    console.log "Received deposit request for #{href} with originalId=#{originalId}"
+    id = addToGlobal(href)
+    lookups[id] = {}
+    if originalId?
+      lookups[originalId][href] = id
+    spawnGenerateStep(0, href + '/source', "#{argv.u}/intermediate/#{id}", id)
+    #res.send "#{argv.u}/content/#{id}"
+    res.send "#{id}"
   )
 
   # For debugging
@@ -110,6 +120,12 @@ module.exports = exports = (argv) ->
   app.get("/content/", (req, res) ->
     keys = (key for key of content)
     res.send keys
+  )
+  app.get("/lookups/", (req, res) ->
+    res.send globalLookups
+  )
+  app.get("/lookups2/", (req, res) ->
+    res.send lookups
   )
   app.get("/assembled/", (req, res) ->
     keys = (key for key of assembly)
@@ -123,7 +139,11 @@ module.exports = exports = (argv) ->
     res.send assembly[req.params.id]
   )
   app.get("/content/:id([0-9]+)", (req, res) ->
-    res.send content[req.params.id].html
+    id = req.params.id
+    if content[id] and content[id].html
+      res.send content[req.params.id].html
+    else
+      res.status(202).send "Still Processing. A JSON describing the status and logs should be here"
   )
   app.get("/content/:id([0-9]+).pdf", (req, res) ->
     res.send content[req.params.id].pdf

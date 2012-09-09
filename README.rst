@@ -38,8 +38,8 @@ Then, point your browser to the admin interface at http://localhost:3000/
 From the admin page use the input box in "Deposit new content from a URL" to point to a CNXML/CollXML file. This will pull in and clean up all related documents. Some examples include:
 
   http://philschatz.github.com/oer.interactive/example.cnxml   # CNXML with cool graphics
-  http://cnx.org/content/m9003/2.68/module_export?format=plain # Module CNXML file
-  http://cnx.org/content/col10514/1.4/source                   # Collection of test modules
+  http://cnx.org/content/m9003/2.68/     # Module CNXML file
+  http://cnx.org/content/col10514/1.4/   # Collection of test modules
 
 Once you submit it, each piece of content goes through 4 phases:
 * /intermediate/ Converts CNXML to HTML (go to /intermediate/# to see either the list of content that is fone or see the HTML of those that are completed)

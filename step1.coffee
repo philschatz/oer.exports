@@ -22,6 +22,7 @@ inputUrl    = system.args[2]
 outputUrl   = system.args[3]
 depositUrl  = system.args[4]
 LOCALHOST   = system.args[5]
+id          = system.args[6]
 
 
 page.onConsoleMessage = (message, url, lineNumber) ->
@@ -74,7 +75,7 @@ page.open encodeURI(inputUrl), (status) ->
   loadScript(programDir + '/lib/injector.js')
   ###
 
-  needToKeepWaiting = page.evaluate((outputUrl, depositUrl, LOCALHOST) ->
+  needToKeepWaiting = page.evaluate((outputUrl, depositUrl, LOCALHOST, id) ->
 
     loadScript = (src) ->
       $script = $('<script></script>')
@@ -86,7 +87,7 @@ page.open encodeURI(inputUrl), (status) ->
 
     # Can't load MathJax using jQuery either. It doesn't process the entire document.
     script = document.createElement('script')
-    script.setAttribute('src', "#{LOCALHOST}/lib/mathjax/MathJax.js?config=MML_HTMLorMML-full")
+    script.setAttribute('src', "#{LOCALHOST}/lib/mathjax/MathJax.js?config=TeX-AMS-MML_SVG-full")
     document.getElementsByTagName('body')[0].appendChild(script)
     
     loadScript "#{LOCALHOST}/lib/d3.js"
@@ -107,25 +108,35 @@ page.open encodeURI(inputUrl), (status) ->
       
       # Rewrite the URLs for XIncluded documents and begin processing them
       # Given the <base> element in <head> we can resolve relative URLs
-      base = $('head base').attr('href')
+      base = $('head meta[href]').attr('href')
       baseHref = base.replace(/\/[^\/]*$/, '')
       baseDomain = base.split('/')[0] + '//' + base.split('/')[2] # ie http://cnx.org:1234/
 
+      toAbsoluteUrl = (href) ->
+        # TODO: Fix up ".." in relative paths
+        if href.charAt(0) == '#'
+          # It's an internal link. No change necessary
+          href
+        else if href.search(/^https?:\/\//) >= 0
+          # It's already absolute
+          href
+        else if href.search(/^\//) >= 0
+          # It starts with a "/"
+          baseDomain + href
+        else
+          # It's a relative path
+          baseHref + href
+      
       # Make URLs absolute instead of relative
       $('a[href]').each () ->
         $a = $(@)
-        href = $a.attr('href')
-        if href.search(/^https?:\/\//) >= 0
-          # It's already absolute
-        else if href.search(/^\//) >= 0
-          # It starts with a "/"
-          href = baseDomain + href
-        else
-          # It's a relative path
-          href = baseHref + href
-        
-        # TODO: Fix up ".." in relative paths
+        href = toAbsoluteUrl($a.attr('href'))
         $a.attr('href', href)
+
+      $('img[src]').each () ->
+        $a = $(@)
+        href = toAbsoluteUrl($a.attr('src'))
+        $a.attr('src', href)
       
       xincludes = $('a[href].xinclude')
       leftToProcess = xincludes.length
@@ -139,7 +150,7 @@ page.open encodeURI(inputUrl), (status) ->
         xhtmlAry.push '<html xmlns="http://www.w3.org/1999/xhtml">'
         # Keep the base element in there
         xhtmlAry.push '<head>'
-        window.dom2xhtml.serialize($('head base')[0], xhtmlAry)
+        window.dom2xhtml.serialize($('head meta')[0], xhtmlAry)
         xhtmlAry.push '</head>'
         window.dom2xhtml.serialize($('body')[0], xhtmlAry)
         xhtmlAry.push '</html>'
@@ -164,22 +175,22 @@ page.open encodeURI(inputUrl), (status) ->
       xincludes.each () ->
         $a = $(@)
         href = $a.attr('href')
-        url = href + '/module_export?format=plain'
-        # PHIL url = href + "/index_auto_generated.cnxml"
+        # PHIL href = href + "/index_auto_generated.cnxml"
           
-        console.log "Depositing #{url} via #{depositUrl}"
+        console.log "Depositing #{href} via #{depositUrl} wrt #{id}"
         
         # Perform the ajax call
-        params = { url: url }
+        params = { url: href, original: id }
         options =
           url: depositUrl
           type: 'POST'
           data: params
         $.ajax(options)
           .fail () ->
-            console.error "Problem Converting #{url}"
+            console.error "Problem Converting #{href}"
           .done (text) ->
-            console.log "Converted #{url} to #{text}"
+            console.log "Converted #{href} to #{text}"
+            $a.attr('data-url', href)
             $a.attr('href', text)
           .always () ->
             leftToProcess--
@@ -196,10 +207,21 @@ page.open encodeURI(inputUrl), (status) ->
         MathJax.Hub.Queue () ->
           console.log "Finished Processing math!  "
           $('#MathJax_Message').remove() # This function gets called before MathJax removes the "Typesetting 100%" message
+          # Copy all the SVG glyphs to multiple SVG elmeents
+          $('#MathJax_SVG_Hidden').remove()
+          $glyphs = $('#MathJax_SVG_glyphs')
+          console.log "GLYPHS.length=#{$glyphs.length}"
+          if $glyphs.length
+            $svg = $('.MathJax_SVG svg')
+            console.log "SVG.length=#{$svg.length}"
+            $svg.each () ->
+              $el = $(@)
+              $el.prepend $glyphs[0].cloneNode(true)
+          $glyphs.remove()
           callback()
       catch e
         console.error "ERROR Happened"
         console.error e
         alert e
     setTimeout mathJaxHack, 10000
-  , outputUrl, depositUrl, LOCALHOST)
+  , outputUrl, depositUrl, LOCALHOST, id)

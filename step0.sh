@@ -25,7 +25,7 @@ xsltproc ${CONTENT_TO_PRESENTATION_XSL} ${CNXML_FILE} > ${CNXML2_FILE}
 # Convert from cnxml (or collxml) to xhtml
 echo "<!DOCTYPE html>" > ${HTML_FILE}
 echo "<html xmlns='http://www.w3.org/1999/xhtml'><head>" >> ${HTML_FILE}
-echo "  <base href='${FROM_URL}'/>" >> ${HTML_FILE}
+echo "  <meta href='${FROM_URL}'/>" >> ${HTML_FILE}
 echo "</head>" >> ${HTML_FILE}
 #cat ${OER_INTERACTIVE}/inject-before.html > ${HTML_FILE}
 
