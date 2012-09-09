@@ -113,7 +113,8 @@ module.exports = exports = (argv) ->
     lookups[id] = {}
     if originalId?
       lookups[originalId][href] = id
-    spawnGenerateStep(0, href + '/source', "#{argv.u}/intermediate/#{id}", id)
+    # Disabled "/source" for local content: spawnGenerateStep(0, href + '/source', "#{argv.u}/intermediate/#{id}", id)
+    spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id)
     #res.send "#{argv.u}/content/#{id}"
     res.send "#{id}"
   )
