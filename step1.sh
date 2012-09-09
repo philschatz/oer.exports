@@ -1,4 +1,4 @@
-#! /bin/bash -x -v
+#! /bin/bash
 FROM_URL=$1
 TO_URL=$2
 ID=$3

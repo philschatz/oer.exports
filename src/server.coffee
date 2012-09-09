@@ -22,9 +22,15 @@ module.exports = exports = (argv) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
     child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
     child.stdout.on 'data', (data) ->
-      console.log("id=#{id}: #{data}");
+      lines = data.toString().split('\n')
+      for line in lines
+        if line.length > 1
+          console.log("id=#{id}: #{line}");
     child.stderr.on 'data', (data) ->
-      console.error("Error id=#{id}: #{data}");
+      lines = data.toString().split('\n')
+      for line in lines
+        if line.length > 1
+          console.error("ERROR id=#{id}: #{line}");
 
   #### State ####
   # Stores in-memory state

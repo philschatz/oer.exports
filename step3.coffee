@@ -50,7 +50,6 @@ page.onAlert = (msg) ->
     phantom.exit(0)
 
 page.open encodeURI(inputUrl), (status) ->
-  console.log "Hello. Status is [#{status}]"
   if status != 'success'
     console.error "File not FOUND!!"
     phantom.exit(1)

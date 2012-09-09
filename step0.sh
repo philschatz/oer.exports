@@ -1,4 +1,4 @@
-#! /bin/bash -x -v
+#! /bin/bash
 FROM_URL=$1
 TO_URL=$2
 ID=$3
@@ -33,4 +33,4 @@ xsltproc ${CNXML2HTML5_XSL} ${CNXML2_FILE} >> ${HTML_FILE}
 echo "</html>" >> ${HTML_FILE}
 
 # POST the result back to the server
-curl --data-urlencode contents@${HTML_FILE} ${TO_URL}
+curl --silent --show-error --data-urlencode contents@${HTML_FILE} ${TO_URL}
