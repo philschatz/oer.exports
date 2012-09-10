@@ -1,5 +1,8 @@
 # Set export objects for node and coffee to a function that generates a sfw server.
 module.exports = exports = (argv) ->
+
+  SVG_TO_PNG_DPI = 12
+
   #### Dependencies ####
   # anything not in the standard library is included in the repo, or
   # can be installed with an:
@@ -15,23 +18,6 @@ module.exports = exports = (argv) ->
   OpenIDstrat = require('passport-openid').Strategy
 
 
-  #### Spawns ####
-  env = { }
-  
-  spawnGenerateStep = (step, fromUrl, toUrl, id) ->
-    console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
-    child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
-    child.stdout.on 'data', (data) ->
-      lines = data.toString().split('\n')
-      for line in lines
-        if line.length > 1
-          console.log("id=#{id}: #{line}");
-    child.stderr.on 'data', (data) ->
-      lines = data.toString().split('\n')
-      for line in lines
-        if line.length > 1
-          console.error("ERROR id=#{id}: #{line}");
-
   #### State ####
   # Stores in-memory state
   intermediate = {}
@@ -39,8 +25,54 @@ module.exports = exports = (argv) ->
   assembly = {}
   globalLookups = {}
   lookups = {}
+  resources = []
+  resourcesQueueIndex = 0
+  resourcesProcessing = false
   hashId = 0
 
+
+  #### Spawns ####
+  env = { }
+
+  childLogger = (isError, id) -> (data) ->
+    lines = data.toString().split('\n')
+    for line in lines
+      if line.length > 1
+        console.log(        "id=#{id}: #{line}") if not isError
+        console.error("ERROR id=#{id}: #{line}") if isError
+  
+  spawnConvertSVGIfNeeded = () ->
+    if resourcesQueueIndex < resources.length and not resourcesProcessing
+      resourcesProcessing = true
+      setTimeout(() ->
+        console.log ("id=SVG Starting resourceId=#{resourcesQueueIndex}")
+        child = spawn('rsvg-convert', [ "--dpi-x=#{SVG_TO_PNG_DPI}", "--dpi-y=#{SVG_TO_PNG_DPI}" ], env)
+        chunks = []
+        chunkLen = 0
+        child.stdin.write(resources[resourcesQueueIndex])
+        child.stdin.end()
+        child.stdout.on 'data', (chunk) ->
+          chunks.push chunk
+          chunkLen += chunk.length
+        child.on 'exit', (code) ->
+          resourcesProcessing = false
+          png = new Buffer(chunkLen)
+          pos = 0
+          for chunk in chunks
+            chunk.copy(png, pos)
+            pos += chunk.length
+          resources[resourcesQueueIndex] = png
+          resourcesQueueIndex++
+          spawnConvertSVGIfNeeded()
+        child.stderr.on 'data', childLogger(true, 'svg2png')
+      , 10)
+    
+  
+  spawnGenerateStep = (step, fromUrl, toUrl, id) ->
+    console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
+    child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
+    child.stdout.on 'data', childLogger(false, id)
+    child.stderr.on 'data', childLogger(true, id)
 
   # Create the main application object, app.
   app = express.createServer()
@@ -145,6 +177,13 @@ module.exports = exports = (argv) ->
   app.get("/assembled/:id([0-9]+)", (req, res) ->
     res.send assembly[req.params.id]
   )
+  app.get("/resource/:id([0-9]+)", (req, res) ->
+    if resources[req.params.id] != null
+      res.header('Content-Type', 'image/png')
+      res.send resources[req.params.id]
+    else
+      res.status(202).send "Still Processing. A JSON describing the status and logs should be here"
+  )
   app.get("/content/:id([0-9]+)", (req, res) ->
     id = req.params.id
     if content[id] and content[id].html
@@ -182,6 +221,13 @@ module.exports = exports = (argv) ->
     toUrl   = "#{argv.u}/assembled/#{id}"
     spawnGenerateStep(3, fromUrl, toUrl, id)
     res.send "OK"
+  )
+  app.post("/svg-to-png", (req, res) ->
+    svg = req.body.contents
+    id = resources.length
+    resources.push svg
+    spawnConvertSVGIfNeeded()
+    res.send "/resource/#{id}"
   )
   app.post("/content/:id([0-9]+).pdf", (req, res) ->
     content[req.params.id]['pdf'] = req.body.contents

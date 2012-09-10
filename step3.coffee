@@ -152,7 +152,7 @@ page.open encodeURI(inputUrl), (status) ->
       retries = 10
       tryAjax = () ->
         config =
-          url: '/content/' + href
+          url: '/assembled/' + href
           type: 'GET'
           statusCode:
             200: (text) ->

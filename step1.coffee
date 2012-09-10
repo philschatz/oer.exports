@@ -138,10 +138,6 @@ page.open encodeURI(inputUrl), (status) ->
         href = toAbsoluteUrl($a.attr('src'))
         $a.attr('src', href)
       
-      xincludes = $('a[href].xinclude')
-      leftToProcess = xincludes.length
-      console.log "Remote deposit count #{leftToProcess}"
-      
       serializeHtml = (callback) ->
         # Hack to serialize out the HTML (sent to the console)
         console.log 'Serializing (X)HTML back out from WebKit...'
@@ -169,34 +165,92 @@ page.open encodeURI(inputUrl), (status) ->
             console.log "Sent XHTML back to server with response: #{text}"
             alert '' # All OK to close up
 
-      if leftToProcess == 0
-        serializeHtml()
-      
-      xincludes.each () ->
-        $a = $(@)
-        href = $a.attr('href')
-        # PHIL href = href + "/index_auto_generated.cnxml"
-          
-        console.log "Depositing #{href} via #{depositUrl} wrt #{id}"
+      recurseXincludes = (callback) ->
+        xincludes = $('a[href].xinclude')
+        leftToProcess = xincludes.length
+        console.log "Remote deposit count #{leftToProcess}"
+  
+        if leftToProcess == 0
+          callback()
         
-        # Perform the ajax call
-        params = { url: href, original: id }
-        options =
-          url: depositUrl
-          type: 'POST'
-          data: params
-        $.ajax(options)
-          .fail () ->
-            console.error "Problem Converting #{href}"
-          .done (text) ->
-            console.log "Converted #{href} to #{text}"
-            $a.attr('data-url', href)
-            $a.attr('href', text)
-          .always () ->
-            leftToProcess--
-            if leftToProcess == 0
-              serializeHtml()
+        xincludes.each () ->
+          $a = $(@)
+          href = $a.attr('href')
+          # PHIL href = href + "/index_auto_generated.cnxml"
+            
+          console.log "Depositing #{href} via #{depositUrl} wrt #{id}"
+          
+          # Perform the ajax call
+          params = { url: href, original: id }
+          options =
+            url: depositUrl
+            type: 'POST'
+            data: params
+          $.ajax(options)
+            .fail () ->
+              console.error "Problem Converting #{href}"
+            .done (text) ->
+              console.log "Converted #{href} to #{text}"
+              $a.attr('data-url', href)
+              $a.attr('href', text)
+            .always () ->
+              leftToProcess--
+              if leftToProcess == 0
+                callback()
 
+      svg2png = (callback) ->
+        $nodes = $('svg')
+        leftToProcess = $nodes.length
+        console.log "svg2png count #{leftToProcess}"
+  
+        if leftToProcess == 0
+          callback()
+        
+        $nodes.each () ->
+          $node = $(@)
+          node = @
+
+          # MathJax doesn't translate the images and explicitly set width/height attributes.
+          # This causes rsvg-convert to only render slivers of the graphic on the top of the image.
+          if $node.parent('.MathJax_SVG').length
+            node = $node[0].cloneNode(true)
+            $svg = $(node)
+            
+            viewbox = $svg[0].getAttribute('viewBox')
+            [x1, y1, x2, y2] = (parseFloat i for i in viewbox.split(' ') )
+            width = x2 - x1
+            height = y2 - y1
+            shiftDown = height / 2
+            $svg.attr('width', width)
+            $svg.attr('height', height)
+            $g = $("<g transform='translate(0, #{shiftDown})'></g>")
+            $svg.contents().appendTo $g
+            $svg.append $g
+
+
+          xmlAry = []
+          window.dom2xhtml.serialize(node, xmlAry)
+          svg = xmlAry.join('')
+
+          # Perform the ajax call
+          params = { contents: svg }
+          options =
+            url: '/svg-to-png'
+            type: 'POST'
+            data: params
+          $.ajax(options)
+            .fail () ->
+              console.error "Problem Converting SVG"
+            .done (resourceHref) ->
+              console.log "Queued SVG2PNG at #{resourceHref}"
+              $node.attr('data-png-url', resourceHref)
+            .always () ->
+              leftToProcess--
+              if leftToProcess == 0
+                callback()
+
+      svg2png () ->
+        recurseXincludes(serializeHtml)
 
     # Configure MathJax
     console.log "Waiting to finish processing math..."
@@ -218,6 +272,12 @@ page.open encodeURI(inputUrl), (status) ->
             $g = $("<g transform='#{transform} translate(#{x}, #{y})'></g>")
             $g.append $($use.attr('href'))[0].cloneNode(true)
             $use.replaceWith $g
+
+          # MathJax doesn't translate the images and explicitly set width/height attributes.
+          # This causes rsvg-convert to only render slivers of the graphic on the top of the image.
+
+          # We have to do this _only_ for the SVG2PNG conversion. Otherwise the images look bad online
+          
           # Remove the hidden MathJax elements
           $('#MathJax_SVG_Hidden').remove()
           $('#MathJax_SVG_glyphs').parent().remove()
