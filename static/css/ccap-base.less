@@ -399,12 +399,13 @@ table caption {
 
 
 /* Introduction banner */
-.chapter > .title { //ccap-chapter
-  margin-bottom: 0em;
-  padding: 0.25em 0.5em;
-  font-size: 2.5em; // xx-large;
-  font-weight: normal;
-  text-transform: uppercase;
+.preface, .chapter, .appendix {
+  > .title { //ccap-chapter
+    margin-bottom: 0em;
+    padding: 0.25em 0.5em;
+    font-size: 2.5em; // xx-large;
+    font-weight: normal;
+    text-transform: uppercase;
 /*
   background-color: @orange;
   padding: .15em 20px; 
@@ -413,6 +414,7 @@ table caption {
   line-height: 1em;
   text-transform: uppercase;
 */
+  }
 }
 /* Used for page headers */
 /* The 1st span contains the chapter number */

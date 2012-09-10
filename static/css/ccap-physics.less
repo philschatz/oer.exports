@@ -85,20 +85,6 @@
 /***************** Title page *****************/
 
 
-/* Introduction banner */
-.preface, .chapter, .appendix {
-  > .title { //ccap-chapter
-    display: block;
-    color: white;
-    background-color: @orange;
-  }
-}
-
-.book > * > .titlepage .cnx-gentext-t::before,
-.chapter > .title::before { //.ccap-chapter-number
-  color: black;
-  padding-right: 1em;
-}
 
 .chapter .introduction > .title span { //.ccap-intro-title
   border-bottom: 1px solid @orange;
@@ -145,6 +131,18 @@ a {
 
 /* Numbered sections should have the number in blue */
 .preface, .chapter, .appendix {
+
+  > .title { //ccap-chapter
+    display: block;
+    color: white;
+    background-color: @orange;
+    
+    &::before { //.ccap-chapter-number
+      color: black;
+      padding-right: 1em;
+    }
+  }
+
   // 3.1 Animals
   > .section,
   > section {
@@ -171,9 +169,6 @@ a {
   }
 }
 
-.chapter > section > .title::before {
-  color: @blue;
-}
 
 /* "Key Concepts" Introduction table */
 .chapter .toc {
