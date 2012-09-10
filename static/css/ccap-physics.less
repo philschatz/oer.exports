@@ -86,10 +86,12 @@
 
 
 /* Introduction banner */
-.chapter > .title { //ccap-chapter
-  display: block;
-  color: white;
-  background-color: @orange;
+.preface, .chapter, .appendix {
+  > .title { //ccap-chapter
+    display: block;
+    color: white;
+    background-color: @orange;
+  }
 }
 
 .book > * > .titlepage .cnx-gentext-t::before,
@@ -244,16 +246,17 @@ figure > .title {
 .cnx-gentext-exercise.cnx-gentext-n {
 	font-weight: bold;
 }
-.example > .title > *,
-.cnx-eoc > .title > *,
-.index > .title > *,
+
+.example > .title,
+.cnx-eoc > .title,
+.index > .title,
 .glossary > .titlepage > div > div > * {
   .ccap-example-title;
 	font-size: small;
 	font-weight: bold;
 	page-break-after: avoid;
 }
-.exercise > .title > * {
+.exercise > .title {
   .ccap-exercise-title;
 	font-size: small;
 	font-weight: bold;
