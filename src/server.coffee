@@ -40,7 +40,7 @@ module.exports = exports = (argv) ->
     fail: () ->
       @isProcessing = false
       @data = null
-    finish: (@data, @mimeType='text/html') ->
+    finish: (@data, @mimeType='text/html; charset=utf-8') ->
       @isProcessing = false
   
   intermediate = {}
@@ -256,7 +256,7 @@ module.exports = exports = (argv) ->
   # Internal
   app.post("/intermediate/:id([0-9]+)", (req, res) ->
     id = req.params.id
-    intermediate[id].finish(req.body.contents, 'text/html')
+    intermediate[id].finish(req.body.contents, 'text/html; charset=utf-8')
     
     #content[id] = new Promise()
     fromUrl = "#{argv.u}/intermediate/#{id}"
@@ -266,7 +266,7 @@ module.exports = exports = (argv) ->
   )
   app.post("/content/:id([0-9]+)", (req, res) ->
     id = req.params.id
-    content[id].finish(req.body.contents, 'text/html')
+    content[id].finish(req.body.contents, 'text/html; charset=utf-8')
 
     #assembled[id] = new Promise()
     fromUrl = "#{argv.u}/content/#{id}"
@@ -276,7 +276,7 @@ module.exports = exports = (argv) ->
   )
   app.post("/assembled/:id([0-9]+)", (req, res) ->
     id = req.params.id
-    assembled[id].finish(req.body.contents, 'text/html')
+    assembled[id].finish(req.body.contents, 'text/html; charset=utf-8')
     
     spawnGeneratePDF(id, pdfs[id])
 
