@@ -125,7 +125,7 @@ page.open encodeURI(inputUrl), (status) ->
           baseDomain + href
         else
           # It's a relative path
-          baseHref + href
+          baseHref + '/' + href
       
       # Make URLs absolute instead of relative
       $('a[href]').each () ->

@@ -20,12 +20,13 @@ Check out related github projects (and put them in ./external):
   http://github.com/philschatz/oer.epubcss (oer.exports-html branch)
   http://github.com/Connexions/rhaptos.cnxmlutils (cnxml2html branch)
   PhantomJS directory ( ./external/phantomjs/bin/phantomjs should work)
+  PrinceXML ( ./external/prince/bin/prince should work)
 
 Also, download MathJax and toss it into ./lib (the file ./lib/mathjax/MathJax.js should exist)
 
 And, to start it up::
 
-  $ node bin/server.js
+  $ node bin/server.js --pdfgen /path/to/prince-or-wkhtml2pdf
 
 Or, to specify a port and hostname::
 
@@ -40,6 +41,9 @@ From the admin page use the input box in "Deposit new content from a URL" to poi
   http://philschatz.github.com/oer.interactive/example.cnxml   # CNXML with cool graphics
   http://cnx.org/content/m9003/2.68/     # Module CNXML file
   http://cnx.org/content/col10514/1.4/   # Collection of test modules
+  # Or, unzip a collection to ./static and make the following changes to the collection.xml
+  # - change all of the @repository urls to be repository="/col123"
+  # - change all the @version attributes to be version="index_auto_generated.cnxml"
 
 Once you submit it, each piece of content goes through 4 phases:
 * /intermediate/ Converts CNXML to HTML (go to /intermediate/# to see either the list of content that is fone or see the HTML of those that are completed)

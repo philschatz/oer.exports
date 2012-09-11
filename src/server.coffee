@@ -46,6 +46,7 @@ module.exports = exports = (argv) ->
   intermediate = {}
   content = {}
   assembled = {}
+  pdfs = {}
   globalLookups = {}
   lookups = {}
   resources = []
@@ -69,6 +70,26 @@ module.exports = exports = (argv) ->
           promise.update line
           console.log("id=#{id}: #{line}")
   
+  spawnGeneratePDF = (id, promise) ->
+    setTimeout(() ->
+      href = "#{argv.u}/assembled/#{id}"
+      console.log ("id=#{id} Generating PDF")
+      child = spawn(argv.g, [ '--input=xhtml', "--style=static/css/ccap-physics.css", '--verbose', '--output=/dev/stdout', href ], env)
+      chunks = []
+      chunkLen = 0
+      child.stdout.on 'data', (chunk) ->
+        chunks.push chunk
+        chunkLen += chunk.length
+      child.on 'exit', (code) ->
+        buf = new Buffer(chunkLen)
+        pos = 0
+        for chunk in chunks
+          chunk.copy(buf, pos)
+          pos += chunk.length
+        promise.finish(buf, 'application/pdf')
+      child.stderr.on 'data', childLogger(true, id, promise)
+    , 10)
+
   spawnConvertSVGIfNeeded = () ->
     if resourcesQueueIndex < resources.length and not resourcesProcessing
       resourcesProcessing = true
@@ -175,12 +196,17 @@ module.exports = exports = (argv) ->
       lookups[originalId][href] = id
     # Disabled "/source" for local content: spawnGenerateStep(0, href + '/source', "#{argv.u}/intermediate/#{id}", id)
 
-    # Create all the promises (to be filled out later)
-    intermediate[id] = new Promise()
-    content[id] = new Promise()
-    assembled[id] = new Promise()
+    # If we already generated this URL then don't spawn it again
+    if id not of intermediate or not originalId?
+    
+      # Create all the promises (to be filled out later)
+      intermediate[id] = new Promise()
+      content[id] = new Promise()
+      assembled[id] = new Promise()
+      pdfs[id] = new Promise()
+  
+      spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
 
-    spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
     #res.send "#{argv.u}/content/#{id}"
     res.send "#{id}"
   )
@@ -221,6 +247,9 @@ module.exports = exports = (argv) ->
   app.get("/content/:id([0-9]+)", (req, res) ->
     content[req.params.id].send(res)
   )
+  app.get("/content/:id([0-9]+).pdf", (req, res) ->
+    pdfs[req.params.id].send(res)
+  )
 
   # Internal
   app.post("/intermediate/:id([0-9]+)", (req, res) ->
@@ -233,10 +262,6 @@ module.exports = exports = (argv) ->
     spawnGenerateStep(1, fromUrl, toUrl, id, content[id])
     res.send "OK"
   )
-  app.post("/assembled/:id([0-9]+)", (req, res) ->
-    assembled[req.params.id].finish(req.body.contents, 'text/html')
-    res.send "OK"
-  )
   app.post("/content/:id([0-9]+)", (req, res) ->
     id = req.params.id
     content[id].finish(req.body.contents, 'text/html')
@@ -245,6 +270,21 @@ module.exports = exports = (argv) ->
     fromUrl = "#{argv.u}/content/#{id}"
     toUrl   = "#{argv.u}/assembled/#{id}"
     spawnGenerateStep(3, fromUrl, toUrl, id, assembled[id])
+    res.send "OK"
+  )
+  app.post("/assembled/:id([0-9]+)", (req, res) ->
+    id = req.params.id
+    assembled[id].finish(req.body.contents, 'text/html')
+    
+    spawnGeneratePDF(id, pdfs[id])
+
+    #toUrl   = "#{argv.u}/content/#{id}.pdf"
+    #spawnGenerateStep('-epub', fromUrl, toUrl, id, epubs[id])
+    res.send "OK"
+  )
+  app.post("/content/:id([0-9]+).pdf", (req, res) ->
+    id = req.params.id
+    pdfs[id].finish(unescape(req.body.contents), 'application/pdf')
     res.send "OK"
   )
   app.post("/svg-to-png", (req, res) ->
