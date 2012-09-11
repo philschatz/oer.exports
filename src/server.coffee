@@ -20,9 +20,32 @@ module.exports = exports = (argv) ->
 
   #### State ####
   # Stores in-memory state
+  class Promise
+    constructor: () ->
+      @start = new Date()
+      @history = []
+      @isProcessing = true
+      @data = null
+    # Send either the data (if available), or a HTTP Status with this JSON
+    send: (res) ->
+      if @isProcessing
+        res.status(202).send @
+      else if @data
+        res.header('Content-Type', @mimeType)
+        res.send @data
+      else
+        res.status(404).send @
+    update: (msg) ->
+      @history.push msg
+    fail: () ->
+      @isProcessing = false
+      @data = null
+    finish: (@data, @mimeType='text/html') ->
+      @isProcessing = false
+  
   intermediate = {}
   content = {}
-  assembly = {}
+  assembled = {}
   globalLookups = {}
   lookups = {}
   resources = []
@@ -34,12 +57,17 @@ module.exports = exports = (argv) ->
   #### Spawns ####
   env = { }
 
-  childLogger = (isError, id) -> (data) ->
+  childLogger = (isError, id, promise) -> (data) ->
     lines = data.toString().split('\n')
     for line in lines
       if line.length > 1
-        console.log(        "id=#{id}: #{line}") if not isError
-        console.error("ERROR id=#{id}: #{line}") if isError
+        if isError
+          # TODO: Cause the promise to fail
+          promise.update "ERROR: #{line}"
+          console.error("ERROR id=#{id}: #{line}")
+        else
+          promise.update line
+          console.log("id=#{id}: #{line}")
   
   spawnConvertSVGIfNeeded = () ->
     if resourcesQueueIndex < resources.length and not resourcesProcessing
@@ -49,7 +77,7 @@ module.exports = exports = (argv) ->
         child = spawn('rsvg-convert', [ "--dpi-x=#{SVG_TO_PNG_DPI}", "--dpi-y=#{SVG_TO_PNG_DPI}" ], env)
         chunks = []
         chunkLen = 0
-        child.stdin.write(resources[resourcesQueueIndex])
+        child.stdin.write(resources[resourcesQueueIndex].svg)
         child.stdin.end()
         child.stdout.on 'data', (chunk) ->
           chunks.push chunk
@@ -61,18 +89,18 @@ module.exports = exports = (argv) ->
           for chunk in chunks
             chunk.copy(png, pos)
             pos += chunk.length
-          resources[resourcesQueueIndex] = png
+          resources[resourcesQueueIndex].finish(png, 'image/png')
           resourcesQueueIndex++
           spawnConvertSVGIfNeeded()
         child.stderr.on 'data', childLogger(true, 'svg2png')
       , 10)
     
   
-  spawnGenerateStep = (step, fromUrl, toUrl, id) ->
+  spawnGenerateStep = (step, fromUrl, toUrl, id, promise) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
     child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
-    child.stdout.on 'data', childLogger(false, id)
-    child.stderr.on 'data', childLogger(true, id)
+    child.stdout.on 'data', childLogger(false, id, promise)
+    child.stderr.on 'data', childLogger(true, id, promise)
 
   # Create the main application object, app.
   app = express.createServer()
@@ -146,14 +174,20 @@ module.exports = exports = (argv) ->
     if originalId?
       lookups[originalId][href] = id
     # Disabled "/source" for local content: spawnGenerateStep(0, href + '/source', "#{argv.u}/intermediate/#{id}", id)
-    spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id)
+
+    # Create all the promises (to be filled out later)
+    intermediate[id] = new Promise()
+    content[id] = new Promise()
+    assembled[id] = new Promise()
+
+    spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
     #res.send "#{argv.u}/content/#{id}"
     res.send "#{id}"
   )
 
   # For debugging
   app.get("/intermediate/", (req, res) ->
-    keys = (key for key of assembly)
+    keys = (key for key of assembled)
     res.send keys
   )
   app.get("/content/", (req, res) ->
@@ -167,79 +201,60 @@ module.exports = exports = (argv) ->
     res.send lookups
   )
   app.get("/assembled/", (req, res) ->
-    keys = (key for key of assembly)
+    keys = (key for key of assembled)
+    res.send keys
+  )
+  app.get("/resource/", (req, res) ->
+    keys = (key for key of resources)
     res.send keys
   )
 
   app.get("/intermediate/:id([0-9]+)", (req, res) ->
-    res.send intermediate[req.params.id]
+    intermediate[req.params.id].send(res)
   )
   app.get("/assembled/:id([0-9]+)", (req, res) ->
-    id = req.params.id
-    if assembly[id]
-      res.send assembly[req.params.id]
-    else
-      res.status(202).send "Still Processing. A JSON describing the status and logs should be here"
+    assembled[req.params.id].send(res)
   )
   app.get("/resource/:id([0-9]+)", (req, res) ->
-    if resources[req.params.id] != null
-      res.header('Content-Type', 'image/png')
-      res.send resources[req.params.id]
-    else
-      res.status(202).send "Still Processing. A JSON describing the status and logs should be here"
+    resources[req.params.id].send(res)
   )
   app.get("/content/:id([0-9]+)", (req, res) ->
-    id = req.params.id
-    if content[id] and content[id].html
-      res.send content[req.params.id].html
-    else
-      res.status(202).send "Still Processing. A JSON describing the status and logs should be here"
-  )
-  app.get("/content/:id([0-9]+).pdf", (req, res) ->
-    res.send content[req.params.id].pdf
-  )
-  app.get("/content/:id([0-9]+).epub", (req, res) ->
-    res.send content[req.params.id].epub
+    content[req.params.id].send(res)
   )
 
   # Internal
   app.post("/intermediate/:id([0-9]+)", (req, res) ->
     id = req.params.id
-    intermediate[id] = req.body.contents
+    intermediate[id].finish(req.body.contents, 'text/html')
     
+    #content[id] = new Promise()
     fromUrl = "#{argv.u}/intermediate/#{id}"
     toUrl   = "#{argv.u}/content/#{id}"
-    spawnGenerateStep(1, fromUrl, toUrl, id)
+    spawnGenerateStep(1, fromUrl, toUrl, id, content[id])
     res.send "OK"
   )
   app.post("/assembled/:id([0-9]+)", (req, res) ->
-    assembly[req.params.id] = req.body.contents
+    assembled[req.params.id].finish(req.body.contents, 'text/html')
     res.send "OK"
   )
   app.post("/content/:id([0-9]+)", (req, res) ->
     id = req.params.id
-    content[id] =
-      html: req.body.contents
+    content[id].finish(req.body.contents, 'text/html')
 
+    #assembled[id] = new Promise()
     fromUrl = "#{argv.u}/content/#{id}"
     toUrl   = "#{argv.u}/assembled/#{id}"
-    spawnGenerateStep(3, fromUrl, toUrl, id)
+    spawnGenerateStep(3, fromUrl, toUrl, id, assembled[id])
     res.send "OK"
   )
   app.post("/svg-to-png", (req, res) ->
     svg = req.body.contents
     id = resources.length
-    resources.push svg
+    resource = new Promise()
+    resource.svg = svg
+    resources.push resource
     spawnConvertSVGIfNeeded()
     res.send "/resource/#{id}"
-  )
-  app.post("/content/:id([0-9]+).pdf", (req, res) ->
-    content[req.params.id]['pdf'] = req.body.contents
-    res.send "OK"
-  )
-  app.post("/content/:id([0-9]+).epub", (req, res) ->
-    content[req.params.id]['epub'] = req.body.contents
-    res.send "OK"
   )
 
   # Traditional request to / redirects to index :)
