@@ -194,6 +194,8 @@ module.exports = exports = (argv) ->
     lookups[id] = {}
     if originalId?
       lookups[originalId][href] = id
+
+    href = href + 'source' if href.search('cnx.org') >= 0
     # Disabled "/source" for local content: spawnGenerateStep(0, href + '/source', "#{argv.u}/intermediate/#{id}", id)
 
     # If we already generated this URL then don't spawn it again
