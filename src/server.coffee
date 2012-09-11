@@ -175,7 +175,11 @@ module.exports = exports = (argv) ->
     res.send intermediate[req.params.id]
   )
   app.get("/assembled/:id([0-9]+)", (req, res) ->
-    res.send assembly[req.params.id]
+    id = req.params.id
+    if assembly[id]
+      res.send assembly[req.params.id]
+    else
+      res.status(202).send "Still Processing. A JSON describing the status and logs should be here"
   )
   app.get("/resource/:id([0-9]+)", (req, res) ->
     if resources[req.params.id] != null
