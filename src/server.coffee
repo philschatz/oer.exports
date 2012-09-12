@@ -13,6 +13,7 @@ module.exports = exports = (argv) ->
   url         = require('url')
   hbs         = require('hbs')
   fs          = require('fs') # Just to load jQuery
+  EventEmitter = require('events').EventEmitter
   # Authentication machinery
   passport    = new (require('passport')).Passport()
   OpenIDstrat = require('passport-openid').Strategy
@@ -20,12 +21,19 @@ module.exports = exports = (argv) ->
 
   #### State ####
   # Stores in-memory state
-  class Promise
-    constructor: () ->
+  class Promise extends EventEmitter
+    constructor: (prerequisite) ->
       @start = new Date()
       @history = []
       @isProcessing = true
       @data = null
+      if prerequisite
+        that = @
+        prerequisite.on 'update', (msg) -> that.update "Prerequisite update: #{msg}"
+        prerequisite.on 'fail', () ->
+          that.update 'Prerequisite task failed'
+          that.fail()
+        prerequisite.on 'finish', (_, mimeType) -> that.update "Prerequisite finished generating object with mime-type=#{mimeType}"
     # Send either the data (if available), or a HTTP Status with this JSON
     send: (res) ->
       if @isProcessing
@@ -37,11 +45,14 @@ module.exports = exports = (argv) ->
         res.status(404).send @
     update: (msg) ->
       @history.push msg
+      @emit('update', msg)
     fail: () ->
       @isProcessing = false
       @data = null
+      @emit('fail')
     finish: (@data, @mimeType='text/html; charset=utf-8') ->
       @isProcessing = false
+      @emit('finish', @data, @mimeType)
   
   intermediate = {}
   content = {}
@@ -203,9 +214,9 @@ module.exports = exports = (argv) ->
     
       # Create all the promises (to be filled out later)
       intermediate[id] = new Promise()
-      content[id] = new Promise()
-      assembled[id] = new Promise()
-      pdfs[id] = new Promise()
+      content[id] = new Promise(intermediate[id])
+      assembled[id] = new Promise(content[id])
+      pdfs[id] = new Promise(assembled[id])
   
       spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
 
