@@ -2,6 +2,10 @@ system = require('system')
 fs = require('fs')
 page = require("webpage").create()
 
+
+# Set the page height and width
+page.viewportSize = { width: 1024, height: 768 }
+
 page.settings.localToRemoteUrlAccessEnabled = true
 page.settings.ignoreSslErrors = true
 
