@@ -26,6 +26,20 @@ xsltproc ${CONTENT_TO_PRESENTATION_XSL} ${CNXML_FILE} > ${CNXML2_FILE}
 echo "<!DOCTYPE html>" > ${HTML_FILE}
 echo "<html xmlns='http://www.w3.org/1999/xhtml'><head>" >> ${HTML_FILE}
 echo "  <meta href='${FROM_URL}'/>" >> ${HTML_FILE}
+
+echo "  <script src='/lib/mathjax/MathJax.js?config=TeX-AMS-MML_SVG-full'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/jquery-latest.js'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/d3.js'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/nv.d3.js'></script>" >> ${HTML_FILE}
+echo "  <link rel='stylesheet' href='/lib/nv.d3.css'/>" >> ${HTML_FILE}
+echo "  <script src='/lib/Tangle/Tangle.js'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/Tangle/TangleKit/mootools.js'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/Tangle/TangleKit/sprintf.js'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/Tangle/TangleKit/BVTouchable.js'></script>" >> ${HTML_FILE}
+echo "  <script src='/lib/Tangle/TangleKit/TangleKit.js'></script>" >> ${HTML_FILE}
+echo "  <link rel='stylesheet' href='/lib/Tangle/TangleKit/TangleKit.css'/>" >> ${HTML_FILE}
+echo "  <script src='/lib/injector.js'></script>" >> ${HTML_FILE}
+
 echo "</head>" >> ${HTML_FILE}
 #cat ${OER_INTERACTIVE}/inject-before.html > ${HTML_FILE}
 

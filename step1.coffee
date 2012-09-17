@@ -65,19 +65,7 @@ page.open encodeURI(inputUrl), (status) ->
       console.error "Could not find #{path}"
       phantom.exit(1)
   
-  loadScript(programDir + '/static/lib/jquery-latest.js')
-  ###
-  loadScript(programDir + '/lib/d3.js')
-  loadScript(programDir + '/lib/mathjax/MathJax.js')
-  loadScript(programDir + '/lib/Tangle/Tangle.js')
-  loadScript(programDir + '/lib/Tangle/TangleKit/mootools.js')
-  loadScript(programDir + '/lib/Tangle/TangleKit/sprintf.js')
-  loadScript(programDir + '/lib/Tangle/TangleKit/BVTouchable.js')
-  loadScript(programDir + '/lib/Tangle/TangleKit/TangleKit.js')
-  loadScript(programDir + '/lib/dom-to-xhtml.js')
-  loadScript(programDir + '/lib/rasterize.js')
-  loadScript(programDir + '/lib/injector.js')
-  ###
+  #loadScript(programDir + '/static/lib/jquery-latest.js')
 
   needToKeepWaiting = page.evaluate((outputUrl, depositUrl, LOCALHOST, id) ->
 
@@ -86,23 +74,22 @@ page.open encodeURI(inputUrl), (status) ->
       $script.attr('type', 'text/javascript')
       $script.attr('src', src)
       $('body').append $script
-    #loadScript "#{LOCALHOST}/lib/jquery-latest.js"
-    #loadScript "#{LOCALHOST}/lib/mathjax/MathJax.js?config=MML_HTMLorMML-full"
 
     # Can't load MathJax using jQuery either. It doesn't process the entire document.
-    script = document.createElement('script')
-    script.setAttribute('src', "#{LOCALHOST}/lib/mathjax/MathJax.js?config=TeX-AMS-MML_SVG-full")
-    document.getElementsByTagName('body')[0].appendChild(script)
+    #script = document.createElement('script')
+    #script.setAttribute('src', "#{LOCALHOST}/lib/mathjax/MathJax.js?config=TeX-AMS-MML_SVG-full")
+    #document.getElementsByTagName('body')[0].appendChild(script)
     
-    loadScript "#{LOCALHOST}/lib/d3.js"
-    loadScript "#{LOCALHOST}/lib/Tangle/Tangle.js"
-    loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/mootools.js"
-    loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/sprintf.js"
-    loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/BVTouchable.js"
-    loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/TangleKit.js"
+    #loadScript "#{LOCALHOST}/lib/d3.js"
+    #loadScript "#{LOCALHOST}/lib/nv.d3.js"
+    #loadScript "#{LOCALHOST}/lib/Tangle/Tangle.js"
+    #loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/mootools.js"
+    #loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/sprintf.js"
+    #loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/BVTouchable.js"
+    #loadScript "#{LOCALHOST}/lib/Tangle/TangleKit/TangleKit.js"
     loadScript "#{LOCALHOST}/lib/dom-to-xhtml.js"
     loadScript "#{LOCALHOST}/lib/rasterize.js"
-    loadScript "#{LOCALHOST}/lib/injector.js"
+    #loadScript "#{LOCALHOST}/lib/injector.js"
 
     callback = () ->
     
@@ -233,7 +220,11 @@ page.open encodeURI(inputUrl), (status) ->
             $svg.contents().appendTo $g
             $svg.append $g
 
-
+          else
+            # If no width is explicitly set on the SVG graphic then use the width in the browser
+            $node.attr('width', "#{ $node.innerWidth() }px") if not $node.attr('width')?
+            $node.attr('height', "#{ $node.innerHeight() }px") if not $node.attr('height')?
+            
           xmlAry = []
           window.dom2xhtml.serialize(node, xmlAry)
           svg = xmlAry.join('')
@@ -250,6 +241,8 @@ page.open encodeURI(inputUrl), (status) ->
             .done (resourceHref) ->
               console.log "Queued SVG2PNG at #{resourceHref}"
               $node.attr('data-png-url', resourceHref)
+              #$img = $('<img></img>').addClass('svg-image').attr('src', resourceHref)
+              #$node.replaceWith $img
             .always () ->
               leftToProcess--
               if leftToProcess == 0
