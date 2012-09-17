@@ -172,7 +172,7 @@ page.open encodeURI(inputUrl), (status) ->
           console.log "Depositing #{href} via #{depositUrl} wrt #{id}"
           
           # Perform the ajax call
-          params = { url: href, original: id }
+          params = { new: href, original: id }
           options =
             url: depositUrl
             type: 'POST'
