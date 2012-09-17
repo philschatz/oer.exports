@@ -106,10 +106,11 @@ module.exports = exports = (argv) ->
       resourcesProcessing = true
       setTimeout(() ->
         console.log ("id=SVG Starting resourceId=#{resourcesQueueIndex}")
-        child = spawn('rsvg-convert', [ "--dpi-x=#{SVG_TO_PNG_DPI}", "--dpi-y=#{SVG_TO_PNG_DPI}" ], env)
+        promise = resources[resourcesQueueIndex]
+        child = spawn('rsvg-convert', [ '--keep-aspect-ratio', "--dpi-x=#{SVG_TO_PNG_DPI}", "--dpi-y=#{SVG_TO_PNG_DPI}" ], env)
         chunks = []
         chunkLen = 0
-        child.stdin.write(resources[resourcesQueueIndex].svg)
+        child.stdin.write(promise.svg)
         child.stdin.end()
         child.stdout.on 'data', (chunk) ->
           chunks.push chunk
@@ -121,15 +122,17 @@ module.exports = exports = (argv) ->
           for chunk in chunks
             chunk.copy(png, pos)
             pos += chunk.length
-          resources[resourcesQueueIndex].finish(png, 'image/png')
+          promise.finish(png, 'image/png')
           resourcesQueueIndex++
           spawnConvertSVGIfNeeded()
-        child.stderr.on 'data', childLogger(true, 'svg2png')
+        child.stderr.on 'data', childLogger(true, 'svg2png', promise)
       , 10)
     
   
   spawnGenerateStep = (step, fromUrl, toUrl, id, promise) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
+    if not promise
+      console.error "ERROR: Spawned without a promise! id=#{id}"
     child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
     child.stdout.on 'data', childLogger(false, id, promise)
     child.stderr.on 'data', childLogger(true, id, promise)
@@ -290,6 +293,7 @@ module.exports = exports = (argv) ->
     assembled[id].finish(req.body.contents, 'text/html; charset=utf-8')
     
     spawnGeneratePDF(id, pdfs[id])
+    #spawnGenerateEPUB(id, epubs[id])
 
     #toUrl   = "#{argv.u}/content/#{id}.pdf"
     #spawnGenerateStep('-epub', fromUrl, toUrl, id, epubs[id])
