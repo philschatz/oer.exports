@@ -22,7 +22,12 @@ Check out related github projects (and put them in ./external):
   PhantomJS directory ( ./external/phantomjs/bin/phantomjs should work)
   PrinceXML ( ./external/prince/bin/prince should work)
 
-Also, download MathJax and toss it into ./lib (the file ./lib/mathjax/MathJax.js should exist)
+Also, download the following libraries and toss them into ./static/lib:
+
+  MathJax  ( Download from http://www.mathjax.org/download/ and the file ./static/lib/mathjax/MathJax.js should exist )
+  d3       ( Put in d3.js from https://github.com/mbostock/d3 )
+  nv       ( Put in nv.d3.js and nv.d3.css from https://github.com/novus/nvd3 )
+  TangleJS ( git clone https://github.com/worrydream/Tangle.git )
 
 And, to start it up::
 

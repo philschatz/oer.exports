@@ -40,10 +40,13 @@ $().ready(function() {
           _id: id,
         };
         var sandboxTop = "(function(window, config, __element) { config.context = __element; ";
-        var sandboxBottom = "}) ({d3: window.d3, Tangle: window.Tangle}, " + JSON.stringify(config) + ", $('#" + id + "')[0] );";
+        var sandboxBottom = "}) ({d3: window.d3, nv: window.nv, Tangle: window.Tangle}, " + JSON.stringify(config) + ", $('#" + id + "')[0] );";
   
         var stringToEval = sandboxTop + scriptCode + sandboxBottom;
-        eval(stringToEval);    
+        //var script = $('<script></script>');
+        //script[0].innerHTML = stringToEval.replace('&', '&amp;').replace('<', '&lt;');
+        //$('body').append(script);
+        $.globalEval(stringToEval);
       } catch(e) {
         // Log the error and keep on moving
         console.error(e);
