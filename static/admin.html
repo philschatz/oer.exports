@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>oerpub.repo Admin Console</title>
+    <title>oerpub.exports Admin Console</title>
     <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'>
     <meta content='width=device-width, height=device-height, initial-scale=1.0, user-scalable=no' name='viewport'>
 <!--
@@ -112,99 +112,23 @@ Aloha.settings.bundles = {
   </head>
   <body>
 
-    <div class="login">
-      <h2>Log in to Create Content</h2>
-      <form action="/login" method="POST">
-        <p>Log in with one of these OpenID Providers:</p>
-        <select name="identifier">
-          <option value="https://www.google.com/accounts/o8/id">Google</option>
-          <option value="https://me.yahoo.com">Yahoo</option>
-          <option value="https://openid.stackexchange.com/">StackExchange</option>
-          <option value="https://www.aol.com">AOL</option>
-          <option value="http://www.livejournal.com/openid/server.bml">Live Journal</option>
-        </span>
-        <input type="submit" value="Log In"/>
-      </form>
-
-      <p>Or, provide a URL given by your OpenID Provider</p>
-      <form action="/login" method="POST">
-        <input name="identifier"/>
-        <input type="submit" value="Log In"/>
-      </form>
-    </div>
-
-    <div class="create">
-      <h2>Create new Content</h2>
-      <form action="/deposit" method="POST">
-        <p>Resource body (the HTML):</p>
-        <textarea name="url">
-&lt;html&gt;
-  &lt;body&gt;
-    &lt;p&gt;Hello there! I really like
-      &lt;a href="http://cnx.org"&gt;Connexions&lt;/a&gt;
-    &lt;/p&gt;
-  &lt;/body&gt;
-&lt;/html&gt;
-        </textarea>
-        <div>
-          <input type="button" name="submit" value="Commit!"/>
-        </div>
-      </form>
-    </div>
-    
     <div class="deposit">
-      <h2>Deposit new content from a URL</h2>
+      <h2>Generate a new PDF from a URL (deposit)</h2>
       <form action="/deposit" method="POST">
         <span>URL: </span>
-        <input name="url" value="http://cnx.org/content/m9003/latest/" style="width: 20em;"/>
+        <input name="new" value="/example.cnxml" style="width: 20em;"/>
         <input type="button" name="submit" value="Deposit!"/>
       </form>
 
       <form action="/deposit" method="POST">
         <span>Or pick one: </span>
-        <select name="url">
+        <select name="new">
           <option value="http://cnx.org/content/m9003/latest/">cnx.org module m9003</option>
-          <option value="http://cnx.org/">Connexions Home Page</option>
+          <option value="http://cnx.org/content/col10514/latest/">cnx.org PDF test collection</option>
+          <option value="/col10514/collection.xml">cnx.org PDF test collection (local)</option>
+          <option value="/example.cnxml">Interactive Figures and TangleJS</option>
           <option value="https://docs.google.com/document/pub?id=1Cv5ozsGi5ukXTe8d_NlDExQg-o1lHvKuLH8RVJXqZRE">Published Google Doc (uses https)</option>
         <input type="button" name="submit" value="Deposit!"/>
-      </form>
-    </div>
-
-    <div class="update">
-      <h2>Submit a new Version</h2>
-      <form action="/deposit" method="POST">
-        <div class="id">
-          <span>Resource id of published resource (just a number):</span>
-          <input class="dynamic-name" value="0" size="3em" />
-        </div>
-        <p>Resource body (the HTML):</p>
-        <textarea class="dynamic-value">
-&lt;html&gt;
-  &lt;body&gt;
-    &lt;p&gt;Hello there! I really like
-      &lt;a href="http://cnx.org"&gt;Connexions&lt;/a&gt;
-    &lt;/p&gt;
-  &lt;/body&gt;
-&lt;/html&gt;
-        </textarea>
-        <div>
-          <input type="button" name="submit" value="Commit!"/>
-        </div>
-      </form>
-    </div>
-
-    <div class="deposit">
-      <h2>Multiple Deposits with a Zip</h2>
-      <form action="/deposit" method="POST" enctype="multipart/form-data">
-        <span>URL 1:</span> <input name="url" value="http://cnx.org/content/m9003/latest/" style="width: 20em;"/> (*)
-        <br/><span>URL 2:</span> <input name="url" value="index.html" style="width: 20em;"/> (*)
-        <br/><span>Update URL:</span> <input class="dynamic-name" value="url" style="width: 5em;"/> = <input class="dynamic-value" style="width: 20em;"/> (**)
-        <br/><span>Zip File:</span> <input name="archive" type="file"/>
-        <br/><input type="submit" value="Deposit!"/>
-        <br/><span>* This can be an absolute URL or a relative href into the Zip file.
-        <br/>Leave both empty to publish all HTML files in the uploaded Zip file (think EPUB)</span>
-        <br/><span>** The 1st box is used either for updating or for adding. The 1st box is either the id or "url" (for new content)
-        <br/>The second box can be either: A URL to pull from, a href into the zip, or the raw HTML</span>
       </form>
     </div>
 
@@ -242,8 +166,18 @@ $('form:not(enctype=multipart/form-data)').each(function(id, form) {
     var params = {};
     inputs.each(function(i, input) {
       $input = $(input);
+      var val = $input.val();
+      if($input.attr('name') == 'new' && $input.val().charAt(0) == '/') {
+        val = location.origin + $input.val();
+      }
+      // If the input is a text box then .val('...') will change the value of it.
+      // If the input is a select dropdown then .val('...') will switch to the 1st option.
+      // Setting the .val('...') is useful in the 1st case so the user sees the service is given 
+      // an absolute URL
+      $input.val(val);
+      
       if($input.attr('name')) {
-        params[$input.attr('name')] = $input.val();
+        params[$input.attr('name')] = val;
       }
     });
 

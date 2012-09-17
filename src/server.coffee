@@ -201,7 +201,7 @@ module.exports = exports = (argv) ->
   # Deposit a URL to convert to PDF/EPUB
   # This can be any URL (for federation)
   app.post('/deposit', (req, res, next) ->
-    href = req.body.url
+    href = req.body.new
     originalId = req.body.original
     console.log "Received deposit request for #{href} with originalId=#{originalId}"
     id = addToGlobal(href)
