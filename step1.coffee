@@ -225,6 +225,8 @@ page.open encodeURI(inputUrl), (status) ->
             width = x2 - x1
             height = y2 - y1
             shiftDown = height / 2
+            # MathJax hack so the raster image doesn't have a bunch of whitespace below the math
+            height = height / 2
             $svg.attr('width', width)
             $svg.attr('height', height)
             $g = $("<g transform='translate(0, #{shiftDown})'></g>")
