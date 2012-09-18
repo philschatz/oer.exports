@@ -200,9 +200,7 @@ module.exports = exports = (argv) ->
   
   # Deposit a URL to convert to PDF/EPUB
   # This can be any URL (for federation)
-  app.post('/deposit', (req, res, next) ->
-    href = req.body.new
-    originalId = req.body.original
+  deposit = (href, originalId) ->
     console.log "Received deposit request for #{href} with originalId=#{originalId}"
     id = addToGlobal(href)
     lookups[id] = {}
@@ -223,8 +221,14 @@ module.exports = exports = (argv) ->
   
       spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
 
+    id
+  # Accept GET and POST Submissions
+  app.all('/deposit', (req, res, next) ->
+    href = req.param('new')
+    originalId = req.param('original')
+    id = deposit(href, originalId)
     #res.send "#{argv.u}/content/#{id}"
-    res.send "#{id}"
+    res.send "/content/#{id}.pdf"
   )
 
   # For debugging
@@ -235,12 +239,6 @@ module.exports = exports = (argv) ->
   app.get("/content/", (req, res) ->
     keys = (key for key of content)
     res.send keys
-  )
-  app.get("/lookups/", (req, res) ->
-    res.send globalLookups
-  )
-  app.get("/lookups2/", (req, res) ->
-    res.send lookups
   )
   app.get("/assembled/", (req, res) ->
     keys = (key for key of assembled)
