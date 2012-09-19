@@ -203,27 +203,13 @@ page.open encodeURI(inputUrl), (status) ->
 
           # MathJax doesn't translate the images and explicitly set width/height attributes.
           # This causes rsvg-convert to only render slivers of the graphic on the top of the image.
-          if $node.parent('.MathJax_SVG').length
-            node = $node[0].cloneNode(true)
-            $svg = $(node)
-            
-            viewbox = $svg[0].getAttribute('viewBox')
-            [x1, y1, x2, y2] = (parseFloat i for i in viewbox.split(' ') )
-            width = x2 - x1
-            height = y2 - y1
-            shiftDown = height / 2
-            # MathJax hack so the raster image doesn't have a bunch of whitespace below the math
-            height = height / 2
-            $svg.attr('width', width)
-            $svg.attr('height', height)
-            $g = $("<g transform='translate(0, #{shiftDown})'></g>")
-            $svg.contents().appendTo $g
-            $svg.append $g
+          # MathJax sets the width and height of the image in a style attribute but
+          # rsvg-convert requires them to be set explicitly
+          # Also, dom-to-xhtml.js needs to use camelcase for the viewBox attribute (that's what caused the slivers)
 
-          else
-            # If no width is explicitly set on the SVG graphic then use the width in the browser
-            $node.attr('width', "#{ $node.innerWidth() }px") if not $node.attr('width')?
-            $node.attr('height', "#{ $node.innerHeight() }px") if not $node.attr('height')?
+          # If no width is explicitly set on the SVG graphic then use the width in the browser
+          $node.attr('width', "#{ $node.innerWidth() }px") if not $node.attr('width')?
+          $node.attr('height', "#{ $node.innerHeight() }px") if not $node.attr('height')?
             
           xmlAry = []
           window.dom2xhtml.serialize(node, xmlAry)
