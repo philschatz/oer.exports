@@ -124,6 +124,7 @@ Aloha.settings.bundles = {
         <span>Or pick one: </span>
         <select name="new">
           <option value="http://cnx.org/content/m9003/latest/">cnx.org module m9003</option>
+          <option value="/col10514/m9003/index_auto_generated.cnxml">cnx.org module m9003 (local)</option>
           <option value="http://cnx.org/content/col10514/latest/">cnx.org PDF test collection</option>
           <option value="/col10514/collection.xml">cnx.org PDF test collection (local)</option>
           <option value="/example.cnxml">Interactive Figures and TangleJS</option>
@@ -132,7 +133,11 @@ Aloha.settings.bundles = {
       </form>
     </div>
 
-    <div class="monitor"/>
+    <div class="monitor intermediate"></div>
+    <div class="monitor content"></div>
+    <div class="monitor assembled"></div>
+    <div class="monitor pdf"></div>
+    <div class="monitor resources"></div>
 
     <script type="text/javascript">
 //<!--
@@ -201,93 +206,86 @@ $('form:not(enctype=multipart/form-data)').each(function(id, form) {
 
 });
 
-tick = function() {
-  $.getJSON('/tasks', function(data, textStatus) {
-    monitor.children().detach();
-    var table = $('<table><caption>Events</caption><tr><th>id</th><th>Title</th><th>Message</th><th>Success URL</th><th>Created</th><th>Took</th><th>additional</th></tr></table>').appendTo(monitor);
-
-    // Print in reverse
-    data = data.reverse();
-    for(var id in data) {
-      var task = data[id];
-      
-      var row = $('<tr/>').appendTo(table);
-      
-      row.addClass(task.status);
-      
-      $('<td><a href="/tasks/'+task.id+'">'+task.id+'</a></td>').appendTo(row);
-      $('<td>'+task.title+'</td>').appendTo(row);
-      $('<td>'+task.message+'</td>').appendTo(row);
-      if(task.url) {
-        var td = $('<td></td>').appendTo(row);
-        var urls = task.url;
-        if (!(urls instanceof Array)) urls = [ urls ];
-        for (var i=0; i < urls.length; i++) {
-          // Remove the hostname
-          if (urls[i].replace) {
-            var url = urls[i].replace(/https?:\/\/[a-z\.:0-9]+/, '');
-            $('<a href="' + url + '">' + url + '</a>').appendTo(td);
-            if (i + 1 != urls.length) {
-              td.append(', ');
-            }
-          } else {
-            td.append('BUG:no-url');
+var tick = function(url, tableName, monitorCls) {
+  return function() {
+    var showTable = function(data, textStatus) {
+      var monitor = $(monitorCls);
+      monitor.children().detach();
+      var table = $('<table><caption>' + tableName + '</caption><tr><th>URL</th><th>Message</th><th>Created</th><th>Took</th><th>additional</th></tr></table>').appendTo(monitor);
+  
+      // Print in reverse
+      data = data.reverse();
+      var finishedCount = 3;
+      for(var index in data) {
+        var task = data[index];
+        
+        // Skip tasks that have successfully completed
+        // Only show a few of the most recent ones though
+        if (task.status == 'FINISHED') {
+          if (finishedCount <= 0) {
+            continue;
+          }
+          finishedCount--;
+        }
+        
+        var row = $('<tr/>').appendTo(table);
+        
+        row.addClass(task.status);
+        
+        $('<td><a href="'+task.id+'">'+task.id+'</a></td>').appendTo(row);
+        $('<td>'+task.history[task.history.length-1]+'</td>').appendTo(row);
+        $('<td>'+task.created+'</td>').appendTo(row);
+        
+        // Calculate how long it has taken so far
+        var start = new Date(task.created);
+        var modified = new Date(task.modified);
+        var diff = modified.getTime() - start.getTime();
+        var minutes = Math.floor(diff / (1000 * 60));
+        var seconds = Math.floor(diff / 1000) % 60;
+        
+        var spent = ''
+        if(minutes > 0) {
+          spent += minutes + 'm';
+        }
+        spent += seconds + 's';
+        
+        $('<td><abbr title="' + task.modified + '">'+spent+'</abbr></td>').appendTo(row);
+        
+        var remove = ['id', 'status', 'title', 'url', 'message', 'created', 'modified', 'history', 'origin', 'data'];
+        for(var i in remove) {
+          var key = remove[i];
+          if(key in task) {
+            delete task[key];
           }
         }
-      } else {
-        $('<td> - </td>').appendTo(row);
-      }
-      $('<td>'+task.created+'</td>').appendTo(row);
-      
-      // Calculate how long it has taken so far
-      var start = new Date(task.created);
-      var modified = new Date(task.modified);
-      var diff = modified.getTime() - start.getTime();
-      var minutes = Math.floor(diff / (1000 * 60));
-      var seconds = Math.floor(diff / 1000) % 60;
-      
-      var spent = ''
-      if(minutes > 0) {
-        spent += minutes + 'm';
-      }
-      spent += seconds + 's';
-      
-      $('<td><abbr title="' + task.modified + '">'+spent+'</abbr></td>').appendTo(row);
-      
-      var td = $('<td></td>').appendTo(row);
-      if (task.origin) {
-        $('<a href="' + task.origin + '">' + task.origin + '</a>').appendTo(td);
-      }
-
-      var remove = ['id', 'status', 'title', 'url', 'message', 'created', 'modified', 'history', 'origin'];
-      for(var i in remove) {
-        var key = remove[i];
-        if(key in task) {
-          delete task[key];
+  
+        var json = '{';
+        for(var key in task) {
+          json += key;
+          json += ':"';
+          json += task[key];
+          json += '", ';
         }
-      }
-
-      var json = '{';
-      for(var key in task) {
-        json += key;
-        json += ':"';
-        json += task[key];
-        json += '", ';
-      }
-      json += '}';
-      
-      if (json != '{}') td.append(' ' + json);
-
+        json += '}';
         
-      id++;
-    }
-    //$(".easydate").easydate();
-    
-  });
-  setTimeout(tick, 5000);
+        if (json != '{}') td.append(' ' + json);
+  
+          
+      }
+      //$(".easydate").easydate();
+      
+      setTimeout(tick(url, tableName, monitorCls), 2000);
+    }; // showTable
+
+    $.getJSON(url, showTable);
+  }; // tick return function() { };
+
 };
 
-tick();
+tick('/intermediate/', 'Intermediate Content', '.monitor.intermediate') ();
+tick('/content/', 'Converted Content', '.monitor.content') ();
+tick('/assembled/', 'Assembled Content', '.monitor.assembled') ();
+tick('/resource/', 'Resources (svg2png)', '.monitor.resources') ();
 
 //});
 
