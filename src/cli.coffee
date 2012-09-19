@@ -25,7 +25,7 @@ argv = optimist
   )
   .options('p',
     alias     : 'port'
-    default   : 3000
+    default   : 3001
     describe  : 'Port'
   )
   .options('r',
