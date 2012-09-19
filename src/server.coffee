@@ -23,11 +23,13 @@ module.exports = exports = (argv) ->
   # Stores in-memory state
   class Promise extends EventEmitter
     constructor: (prerequisite) ->
-      @start = new Date()
+      #events.push @
+      @status = 'PENDING'
+      @created = new Date()
       @history = []
       @isProcessing = true
       @data = null
-      if prerequisite
+      if prerequisite?
         that = @
         prerequisite.on 'update', (msg) -> that.update "Prerequisite update: #{msg}"
         prerequisite.on 'fail', () ->
@@ -44,14 +46,34 @@ module.exports = exports = (argv) ->
       else
         res.status(404).send @
     update: (msg) ->
+      #if @status == 'FINISHED' or @status == 'FAILED'
+      #  message = @history[@history.length-1]
+      #  err = { event: @, message: "This event already completed with status #{@status} and message='#{message}'", newMessage: msg }
+      #  console.log err
+      #  throw err
+      @modified = new Date()
       @history.push msg
+      if @history.length > 50
+        @history.splice(0,1)
       @emit('update', msg)
-    fail: () ->
+  
+    work: (message, @status='WORKING') ->
+      @update(message)
+      @emit('work')
+    wait: (message, @status='PAUSED') ->
+      @update(message)
+      @emit('work')
+  
+    fail: (msg) ->
+      @update msg
       @isProcessing = false
+      @status = 'FAILED'
       @data = null
       @emit('fail')
     finish: (@data, @mimeType='text/html; charset=utf-8') ->
+      @update "Generated file"
       @isProcessing = false
+      @status = 'FINISHED'
       @emit('finish', @data, @mimeType)
   
   intermediate = {}
@@ -228,41 +250,61 @@ module.exports = exports = (argv) ->
     originalId = req.param('original')
     id = deposit(href, originalId)
     #res.send "#{argv.u}/content/#{id}"
-    res.send "/content/#{id}.pdf"
+    # NOTE: We're sending just the ID because things like the xinclude pass use just the id.
+    # Ideally this would return "/content/#{id}"
+    if originalId?
+      res.send "#{id}"
+    else
+      res.send "/content/#{id}"
   )
 
   # For debugging
+  getTasks = (path, table) ->
+    ret = []
+    for id, val of table
+      ret.push
+        id: path + id
+        status: val.status
+        history: val.history
+        created: val.created
+        modified: val.modified
+    ret
+  
   app.get("/intermediate/", (req, res) ->
-    keys = (key for key of assembled)
-    res.send keys
+    res.send getTasks('/intermediate/', intermediate)
   )
   app.get("/content/", (req, res) ->
-    keys = (key for key of content)
-    res.send keys
+    res.send getTasks('/content/', content)
   )
   app.get("/assembled/", (req, res) ->
-    keys = (key for key of assembled)
-    res.send keys
+    res.send getTasks('/assembled/', assembled)
   )
   app.get("/resource/", (req, res) ->
-    keys = (key for key of resources)
-    res.send keys
+    res.send getTasks('/resource/', resources)
   )
 
+  # Util function that either renders the promise or a 404
+  renderObj = (res, name, table, index) ->
+    if table[index]?
+      table[index].send(res)
+    else
+      console.log "Problem Requesting #{name}=#{index}"
+      res.send 404
+
   app.get("/intermediate/:id([0-9]+)", (req, res) ->
-    intermediate[req.params.id].send(res)
+    renderObj res, 'intermediate', intermediate, req.params.id
   )
   app.get("/assembled/:id([0-9]+)", (req, res) ->
-    assembled[req.params.id].send(res)
+    renderObj res, 'assembled', assembled, req.params.id
   )
   app.get("/resource/:id([0-9]+)", (req, res) ->
-    resources[req.params.id].send(res)
+    renderObj res, 'resource', resources, req.params.id
   )
   app.get("/content/:id([0-9]+)", (req, res) ->
-    content[req.params.id].send(res)
+    renderObj res, 'content', content, req.params.id
   )
   app.get("/content/:id([0-9]+).pdf", (req, res) ->
-    pdfs[req.params.id].send(res)
+    renderObj res, 'pdf', pdfs, req.params.id
   )
 
   # Internal
@@ -309,6 +351,9 @@ module.exports = exports = (argv) ->
     resource.svg = svg
     resources.push resource
     spawnConvertSVGIfNeeded()
+    if not resources[id]
+      console.error "AKSJHDASKJHDF"
+    console.log "Sending back /resource/#{id}"
     res.send "/resource/#{id}"
   )
 
