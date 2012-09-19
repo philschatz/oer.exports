@@ -187,7 +187,7 @@ page.open encodeURI(inputUrl), (status) ->
 
         $.ajax(config)
           .fail () ->
-            console.error "Failed for some reason other than still processing"
+            console.error "Failed for some reason other than still processing while calling GET #{config.url}"
       tryAjax()
 
   , outputUrl, depositUrl, LOCALHOST)
