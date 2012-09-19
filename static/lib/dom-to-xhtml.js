@@ -1,6 +1,5 @@
 window.dom2xhtml = (function() {
 
-
 	/**
 	 * Gets the attributes of the given element.
 	 *
@@ -18,16 +17,17 @@ window.dom2xhtml = (function() {
 			if ( typeof attr.specified === "undefined" || attr.specified ) {
 				var name = attr.nodeName;
 				
-        //Attributes belonging to the xmlns namespace should be ignored
-        if ('http://www.w3.org/2000/xmlns/' == attr.namespaceURI) {
-          continue;
-        } else if ('http://www.w3.org/1999/xhtml' == attr.namespaceURI || null == attr.namespaceURI) {
-          name = name.toLowerCase();
-        } else {
-          // Uses CSS namespace syntax
-          name = attr.namespaceURI + '|' + name;
-        }
-
+				// Ignore attributes belonging to the xmlns namespace
+				// Otherwise include the namespace unless
+				// it is an XHTML attribute.
+				if ('http://www.w3.org/2000/xmlns/' == attr.namespaceURI) {
+					continue;
+				} else if ('http://www.w3.org/1999/xhtml' == attr.namespaceURI || null == attr.namespaceURI) {
+					// Leave the name alone. It will get lowercased later.
+				} else {
+					// Uses CSS namespace syntax
+					name = attr.namespaceURI + '|' + name;
+				}
 				
 				// Use jQuery to get a corrected style attribute on IE.
 				// Otherwise prefer getAttribute() over attr.nodeValue as the
@@ -91,29 +91,38 @@ window.dom2xhtml = (function() {
 	 *        given element, separated by space. The string will have a leading space.
 	 */
 	function makeAttrString(element) {
+		var nsElement = element.namespaceURI;
 		var attrs = getAttrs(element);
 		var str = "";
 		for (var i = 0; i < attrs.length; i++) {
 
 			// The XHTML spec says attributes are lowercase
-      // but attributes belonging to other namespaces like xlink:href
-      // should preserve their case and include a namespaceURI
-      var namespace, name, nsExtra;
-      var nsName = attrs[i][0];
-      if (nsName.indexOf('|') >= 0) {
-        namespace = nsName.split('|')[0];
-        name = nsName.split('|')[1];
-      } else {
-        namespace = null;
-        name = nsName;
-      }
-      if (namespace == null || namespace == 'http://www.w3.org/1999/xhtml') {
-        name = name.toLowerCase();
-        nsExtra = '';
-      } else {
-        name = 'ns' + i + ':' + name;
-        nsExtra = 'xmlns:ns' + i + '="' + namespace + '" ';
-      }
+			// but attributes belonging to other namespaces like xlink:href
+			// should preserve their case and include a namespaceURI
+			var namespace, name, nsExtra;
+			var nsName = attrs[i][0];
+            // getAttrs adds a separator if the attribute has a namespace
+			if (nsName.indexOf('|') >= 0) {
+				namespace = nsName.split('|')[0];
+				name = nsName.split('|')[1];
+			} else {
+				namespace = null;
+				name = nsName;
+			}
+			if (namespace == null || namespace == 'http://www.w3.org/1999/xhtml') {
+				// Check if the element belongs to the HTML namespace.
+				// If not, then don't lowercase the attribute
+				if (nsElement == null || nsElement == 'http://www.w3.org/1999/xhtml') {
+					name = name.toLowerCase();
+					nsExtra = '';
+				} else {
+					// name = name.toLowerCase();
+					nsExtra = '';
+				}
+			} else {
+				name = 'ns' + i + ':' + name;
+				nsExtra = 'xmlns:ns' + i + '="' + namespace + '" ';
+			}
 			var value = attrs[i][1];
 
 			//TODO it's only a boolean attribute if the element is in an HTML namespace
@@ -201,20 +210,18 @@ window.dom2xhtml = (function() {
 	 *        a child of the given element.
 	 */
 	function serializeElement(element, child, unrecognized, xhtml) {
-		// TODO: we should only lowercase element names if they are in an HTML namespace
+        var elementName = element.nodeName;
+        var nsDeclaration;
 
-    var elementName = element.nodeName;
-    var additionalOpen;
-    		
 		// Elements belonging to other namespaces like svg:textPath
 		// should preserve their case and include a namespaceURI
 		if (element.namespaceURI == "http://www.w3.org/1999/xhtml") {
-  		elementName = elementName.toLowerCase();
-  		additionalOpen = '';
+			elementName = elementName.toLowerCase();
+			nsDeclaration = '';
 		} else if ('http://www.w3.org/2000/svg' == element.namespaceURI && elementName != 'svg') {
-  		additionalOpen = '';
-    } else {
-		  additionalOpen = ' xmlns="' + element.namespaceURI + '"';
+			nsDeclaration = '';
+		} else {
+			nsDeclaration = ' xmlns="' + element.namespaceURI + '"';
 		}
 		
 		// This is a hack around an IE bug which strips the namespace prefix
@@ -225,7 +232,7 @@ window.dom2xhtml = (function() {
 		if ( ! unrecognized && null == child && -1 !== $.inArray(elementName, emptyElements) ) {
 			xhtml.push('<' + elementName + makeAttrString(element) + '/>');
 		} else {
-			xhtml.push('<' + elementName + additionalOpen + makeAttrString(element) + '>');
+			xhtml.push('<' + elementName + nsDeclaration + makeAttrString(element) + '>');
 			child = serializeChildren(element, child, unrecognized,  xhtml);
 			xhtml.push('</' + elementName + '>');
 		}
@@ -258,7 +265,7 @@ window.dom2xhtml = (function() {
 	}
 	
 	return {
-	  serialize: serialize,
+		serialize: serialize,
 		/**
 		 * Serializes a number of DOM nodes in an array-like object to an XHTML string.
 		 *
