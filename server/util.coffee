@@ -1,12 +1,18 @@
+# A couple of functions and classes that are useful outside the webserver context
+# or useful for more than one webserver.
+
+# require dependencies
 EventEmitter = require('events').EventEmitter
 spawn       = require('child_process').spawn
 path        = require('path')
 
 #### State ####
-# Stores in-memory state
+# Stores the status of an asynchronous Promise
+#
+# It's updated by the running task and knows how to send
+# the finished document if processing completed.
 module.exports.Promise = class Promise extends EventEmitter
   constructor: (prerequisite) ->
-    #events.push @
     @status = 'PENDING'
     @created = new Date()
     @history = []

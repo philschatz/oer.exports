@@ -23,35 +23,8 @@ module.exports = exports = (argv) ->
   # In-memory "database" of all the Promises to make PDFs
   PDFS = []
 
-  #### Express configuration ####
-  # Set up all the standard express server options,
-  # including hbs to use handlebars/mustache templates
-  # saved with a .html extension, and no layout.
-  app.configure( ->
-    app.set('view options', layout: false)
-    app.use(express.bodyParser())
-    app.use(express.methodOverride())
-    app.use(app.router)
-    app.use(express.static(path.join(__dirname, '..', 'node_modules')))
-    app.use(express.static(path.join(__dirname, '..', 'static')))
-  )
-
-  ##### Set up standard environments. #####
-  # In dev mode turn on console.log debugging as well as showing the stack on err.
-  app.configure('development', ->
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }))
-    argv.debug = console? and true
-  )
-  # Swallow errors when in production.
-  app.configure('production', ->
-    app.use(express.errorHandler())
-  )
-
   # Show all of the options a server is using.
   console.log argv if argv.debug
-
-
-
 
   #### Routes ####
 
@@ -62,10 +35,12 @@ module.exports = exports = (argv) ->
   # * `GET /pdfs/[id]` returns a 200 with the PDF
   #
   # For admin/monitoring:
+  #
   # * `GET /pdfs` returns a list of the most recent PDF tasks
   # * `POST /pdfs/[id]/kill` kills that task
 
-  # Someone would like us to generate a PDF!
+  # Request to generate a PDF
+  # Requires a `url` and optional `style` POST parameter
   app.post('/pdfs', (req, res, next) ->
     url = req.param('url')
     style = req.param('style', 'ccap-physics')
@@ -112,6 +87,30 @@ module.exports = exports = (argv) ->
   # Traditional request to / redirects to the admin page
   app.get('/', (req, res) ->
     res.redirect('admin.html')
+  )
+
+  #### Webserver configuration ####
+  # Set up all the standard express server options,
+  #
+  # Use the HTML files in the `static` directory
+  app.configure( ->
+    app.set('view options', layout: false)
+    app.use(express.bodyParser())
+    app.use(express.methodOverride())
+    app.use(app.router)
+    app.use(express.static(path.join(__dirname, '..', 'node_modules')))
+    app.use(express.static(path.join(__dirname, '..', 'static')))
+  )
+
+  ##### Set up standard environments. #####
+  # In dev mode turn on console.log debugging as well as showing the stack on err.
+  app.configure('development', ->
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }))
+    argv.debug = console? and true
+  )
+  # Swallow errors when in production.
+  app.configure('production', ->
+    app.use(express.errorHandler())
   )
 
   #### Start the server ####
