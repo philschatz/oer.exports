@@ -1,335 +1,166 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>oerpub.exports Admin Console</title>
-    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'>
-    <meta content='width=device-width, height=device-height, initial-scale=1.0, user-scalable=no' name='viewport'>
-<!--
-    <script src='http://code.jquery.com/jquery-latest.js' type='text/javascript'></script>
--->
-    <script src='./lib/jquery.min.js' type='text/javascript'></script>
+    <title>Admin Console</title>
+
+<script type="text/javascript">var module = {}; </script>
+<script type="text/javascript" src="./jquery-component/dist/jquery.js"></script>
+
+    <script src="humane-dates.js"></script>
+
+    <link href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" rel="stylesheet">
 
 
-  <!-- These CSS/javascript files depend on where Aloha is located -->
-<!--
-	<link rel="stylesheet" type="text/css" href="./Aloha-Editor/src/css/aloha.css" />
--->
-
-  <!-- These render the toolbar and menubar -->
-<!--
-  <link rel="stylesheet" type="text/css" href="./oerpub.editor/appmenu/appmenu.css" />
--->
-
-    <style type="text/css">
-    
-      .toolbar { position: fixed; top: 0; width: 100%; z-index: 1000;}
-      .document { border: 2px solid blue; min-height: 4em; }
-      body { margin-top: 3em; }
-    
-      body {
-        counter-reset: step-number;
-        background-color: #F0F1EB;
-        font-family: serif;
-      }
-      h2 {
-        counter-increment: step-number;
-        margin-top: 0.25em;
-        font-family: sans-serif;
-      }
-      h2::before { content: counter(step-number) ". "; color: #ccc; }
-      textarea { width: 25em; height: 10em; }
-      table { width: 100%; }
-      td, th { border: 1px solid; padding: 0em 0.5em; }
-      table caption { text-align: left; font-weight: bold; }
-      abbr { white-space: nowrap; }
-      
-      .monitor,
-      .login,
-      .create, .update, 
-      .deposit {
-        float: left;
-        margin: 0.5em;
-        padding: 0.5em;
-        background-color: white;
-        box-shadow: 10px 11px 44px rgba(0, 0, 0, 0.35), inset 0px 0px 1px rgba(255, 255, 255, 0.15);
-      }
-      
-      th        { color: #666; }
-      .PENDING  { background-color: #66f; }
-      .WORKING  { }
-      .PAUSED   { background-color: #ccc; }
-      .FINISHED { color: #ccc; }
-      .FINISHED td:first-child { background-color: #cc6; }
-      .FAILED   { background-color: #c66; }
-      
-    </style>
-
-<!--
-
-<script type="text/javascript">
-window.Aloha = window.Aloha || {};
-Aloha.settings = Aloha.settings || {};
-
-// In order to load the toolbar plugin Aloha needs to know where to look it up
-// Since the toolbar plugin begins with "custom/" in @data-aloha-plugins
-// This points Aloha to use the current directory to find toolba/lib/toolbar-plugin
-Aloha.settings.bundles = {
-  'custom': '/oerpub.editor/' //document.location.href.replace(/[a-z]+\.html/, '') + ,
-};
-
-</script>
-
-<- The first plugins are required but the rest are included for playing around with ->
-	<script src="./Aloha-Editor/src/lib/aloha.js" data-aloha-plugins="
-
-            custom/toolbar,
-            common/dom-to-xhtml,
-              common/format,
-
-              extra/cite,
-              extra/flag-icons,
-              extra/wai-lang,
-              common/table,
-              common/list,
-              common/link,
-              common/block,
-              common/undo,
-              common/contenthandler,
-              common/paste,
-              common/commands,
-              common/image,
-              common/abbr,
-              extra/browser,
-              extra/linkbrowser,
-              extra/sourceview"></script>
-  <script>jQuery = Aloha.jQuery; // Set window.jQuery because hotkeys bind to it</script>
-  <script src="./oerpub.editor/lib/jquery.hotkeys.js"></script>
-
-  <script src="./oerpub.editor/appmenu/appmenu.js"></script>
--->
-
+<style type="text/css">
+  .progress { margin-bottom: 0; }
+  .datetime { white-space: nowrap; text-transform: lowercase; }
+</style>
 
   </head>
   <body>
 
-    <div class="deposit">
-      <h2>Generate a new PDF from a URL (deposit)</h2>
-      <form action="/deposit" method="POST">
-        <span>URL: </span>
-        <input name="new" value="/example.cnxml" style="width: 20em;"/>
-        <input type="button" name="submit" value="Deposit!"/>
-      </form>
+  <h2>Admin Console</h2>
 
-      <form action="/deposit" method="POST">
-        <span>Or pick one: </span>
-        <select name="new">
-          <option value="http://cnx.org/content/m9003/latest/">cnx.org module m9003</option>
-          <option value="/col10514/m9003/index_auto_generated.cnxml">cnx.org module m9003 (local)</option>
-          <option value="http://cnx.org/content/col10514/latest/">cnx.org PDF test collection</option>
-          <option value="/col10514/collection.xml">cnx.org PDF test collection (local)</option>
-          <option value="/example.cnxml">Interactive Figures and TangleJS</option>
-          <option value="https://docs.google.com/document/pub?id=1Cv5ozsGi5ukXTe8d_NlDExQg-o1lHvKuLH8RVJXqZRE">Published Google Doc (uses https)</option>
-        <input type="button" name="submit" value="Deposit!"/>
-      </form>
-    </div>
+  <p>Collection ZIP URL: <form method="POST" action="pdfs"><input name="url" type="url" placeholder="URL to a Collection Zip" value="http://cnx.org/content/col10514/latest/complete" /><button class="btn btn-primary">Submit</button></form>.</p>
+  <p>Refresh: <input id="refresh" type="number" placeholder="seconds" /></p>
 
-    <div class="monitor intermediate"></div>
-    <div class="monitor content"></div>
-    <div class="monitor assembled"></div>
-    <div class="monitor pdf"></div>
-    <div class="monitor resources"></div>
+  <div class="span9">
+    <table class="monitor table table-striped table-hover table-condensed table-bordered">
+      <thead>
+        <tr>
+          <th> </th><th colspan="2">Times</th><th colspan="3">Progress</th>
+        </tr>
+        <tr>
+          <th>Id</th><th>Started</th><th>Updated</th><th>Completion</th><th>Progress</th><th>Kill</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="no-tasks"><td colspan="5">No data has loaded yet</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-    <script type="text/javascript">
+
+  <script type="text/javascript">
 //<!--
 
-//$.ready(function() {
+jQuery().ready(function() {
+  var STATUS_URL = '/pdfs';
 
-var monitor = $('.monitor');
+  var $monitor = jQuery('.monitor tbody');
 
-//Make the forms AJAXy
-$('form input.dynamic-name'). each(function(id, input) {
-  var $input = $(input);
-  // Set the name on load and then whenever it changes, 
-  $input.parents('form').find('.dynamic-value').attr('name', $input.val());
+  /* Repopulate the table but only change rows that have changed */
+  function repopulate(data) {
+    // 1st off, clear the no-tasks row since we have some data
+    $monitor.find('.no-tasks').remove();
 
-  $input.on('change', function() {
-    var $input = $(this);
-    $input.parents('form').find('.dynamic-value').attr('name', $input.val());
-  })
-});
+    for(id in data) {
+      var task = data[id];
 
-$('form:not(enctype=multipart/form-data)').each(function(id, form) {
-  var $form = $(form);
-  var action = $form.attr('action');
-  var method = $form.attr('method');
-  var inputs = $form.find('input:not([name=submit]),textarea,select');
-  var submit = $form.find('input[name=submit]');
-  
-  if(!method) { method = 'GET'; }
-  
-  submit.on('click', function() {
-    var params = {};
-    inputs.each(function(i, input) {
-      $input = $(input);
-      var val = $input.val();
-      if($input.attr('name') == 'new' && $input.val().charAt(0) == '/') {
-        val = location.origin + $input.val();
+      // TODO: There should be 1 template (for i18n) instead of a bunch of divs
+      var $row = $monitor.find('#task-' + id);
+      if (!$row[0]) {
+        $row = jQuery('<tr><td class="id"><a class="id-link" href="#" target="blank">#</a></td><td class="created"><span class="datetime">#</span></td><td class="modified"><span class="datetime">#</span></td><td class="estimate"><span class="datetime">#</span></td><td class="progress"><div class="progress progress-striped active" rel="tooltip" title="#"><div class="bar"></div></div></td><td class="kill"><button class="kill-task btn btn-danger btn-small">Kill Task</button></td></tr>');
+        $row.attr('id', 'task-' + id);
+        $monitor.prepend($row);
       }
-      // If the input is a text box then .val('...') will change the value of it.
-      // If the input is a select dropdown then .val('...') will switch to the 1st option.
-      // Setting the .val('...') is useful in the 1st case so the user sees the service is given 
-      // an absolute URL
-      $input.val(val);
-      
-      if($input.attr('name')) {
-        params[$input.attr('name')] = val;
-      }
-    });
+      var $id = $row.find('.id .id-link');
+      var $created = $row.find('.created .datetime');
+      var $modified = $row.find('.modified .datetime');
+      var $progress = $row.find('.progress');
+      var $bar = $row.find('.progress .bar');
+      var $estimate = $row.find('.estimate .datetime');
+      var $kill = $row.find('.kill-task');
 
-    
-    $.ajax(action, {
-      type: method,
-      data: params,
-      success: function(text, status) {
-        alert("Succeeded with message (Check this URL for status): " + text);
-      },
-      statusCode: {
-        404: function() {
-          alert("Error! Did you log in? To Perform this operation you must be logged in");
-        }
+
+      switch(task.status) {
+        case 'FAILED':
+          $row.addClass('error');
+          $bar.addClass('bar-danger');
+          $bar.parent().removeClass('progress-striped');
+          $kill.addClass('disabled');
+          break;
+        case 'FINISHED':
+          //$row.addClass('success');
+          $row.removeClass('info');
+          $bar.addClass('bar-success');
+          $bar.parent().removeClass('progress-striped');
+          $kill.remove();
+          break;
+        default:
+          $row.addClass('info');
+      }
+
+
+      $id.attr('href', STATUS_URL + '/' + id);
+      $id.text(id);
+
+      $created.attr('title', task.created);
+      $modified.attr('title', task.modified);
+
+      var fraction = task.progress.finished / task.progress.total;
+      var percent = Math.round(fraction * 100);
+      $bar.width(percent + '%');
+      $progress.attr('title', 'Completed ' + task.progress.finished + '/' + task.progress.total + ' units (' + percent + '%)');
+
+      // Calculate Estimated Time to completion
+      if (task.status != 'FAILED' && task.status != 'FINISHED') {
+        var started = new Date(task.created).getTime();
+        var modified = new Date(task.modified).getTime();
+        var taken = new Date().getTime() - started;
+        var estimate = taken / fraction;
+        $estimate.attr('title', JSON.stringify(new Date(started + estimate)));
+      }
+
+      $kill.on('click', function() {
+        jQuery.ajax(STATUS_URL + '/' + id + '/kill');
+      });
+
+    }
+    jQuery('.datetime').humaneDates();
+
+  }
+
+  var retry = function() {
+    jQuery.ajax(STATUS_URL, {
+      type: 'GET',
+      success: function(data) {
+        repopulate(data);
+        setTimeout(retry, 1000 * ($('#refresh').val() || 5));
       },
       error: function(jqXHR, textStatus, errorThrown) {
-        alert("Failed! Did you log in?");
+        // Stop retrying
+        alert('There was a problem connecting to the server. Refresh and try again');
       }
     });
-  });
+  };
+  retry();
 
-});
 
-var tick = function(url, tableName, monitorCls) {
-  return function() {
-    var showTable = function(data, textStatus) {
-      var monitor = $(monitorCls);
-      monitor.children().detach();
-      var table = $('<table><caption>' + tableName + '</caption><tr><th>URL</th><th>Message</th><th>Created</th><th>Took</th><th>additional</th></tr></table>').appendTo(monitor);
-  
-      // Print in reverse
-      data = data.reverse();
-      var finishedCount = 3;
-      for(var index in data) {
-        var task = data[index];
-        
-        // Skip tasks that have successfully completed
-        // Only show a few of the most recent ones though
-        if (task.status == 'FINISHED') {
-          if (finishedCount <= 0) {
-            continue;
-          }
-          finishedCount--;
-        }
-        
-        var row = $('<tr/>').appendTo(table);
-        
-        row.addClass(task.status);
-        
-        $('<td><a href="'+task.id+'">'+task.id+'</a></td>').appendTo(row);
-        $('<td>'+task.history[task.history.length-1]+'</td>').appendTo(row);
-        $('<td>'+task.created+'</td>').appendTo(row);
-        
-        // Calculate how long it has taken so far
-        var start = new Date(task.created);
-        var modified = new Date(task.modified);
-        var diff = modified.getTime() - start.getTime();
-        var minutes = Math.floor(diff / (1000 * 60));
-        var seconds = Math.floor(diff / 1000) % 60;
-        
-        var spent = ''
-        if(minutes > 0) {
-          spent += minutes + 'm';
-        }
-        spent += seconds + 's';
-        
-        $('<td><abbr title="' + task.modified + '">'+spent+'</abbr></td>').appendTo(row);
-        
-        var remove = ['id', 'status', 'title', 'url', 'message', 'created', 'modified', 'history', 'origin', 'data'];
-        for(var i in remove) {
-          var key = remove[i];
-          if(key in task) {
-            delete task[key];
-          }
-        }
-  
-        var json = '{';
-        for(var key in task) {
-          json += key;
-          json += ':"';
-          json += task[key];
-          json += '", ';
-        }
-        json += '}';
-        
-        if (json != '{}') td.append(' ' + json);
-  
-          
-      }
-      //$(".easydate").easydate();
-      
-      setTimeout(tick(url, tableName, monitorCls), 2000);
-    }; // showTable
 
-    $.getJSON(url, showTable);
-  }; // tick return function() { };
-
-};
-
-tick('/intermediate/', 'Intermediate Content', '.monitor.intermediate') ();
-tick('/content/', 'Converted Content', '.monitor.content') ();
-tick('/assembled/', 'Assembled Content', '.monitor.assembled') ();
-tick('/resource/', 'Resources (svg2png)', '.monitor.resources') ();
-
-//});
+}); // End jQuery.ready();
 
 //-->
     </script>
 
 
 
-
-
-<!-- Use the new cool editor if it exists -->
-  
-
-
-<!-- With some fancy Javascript wrap each form with a textarea with an editor -->
-<script>//<![CDATA[
-
-
-var header = Aloha.jQuery('<div />').addClass('header').prependTo('body');
-Aloha.jQuery('<div />').addClass('menubar').prependTo(header);
-Aloha.jQuery('<div />').addClass('toolbar').prependTo(header);
-
-// Once Aloha has loaded, bind it all
-Aloha.ready(function() {
-
-  var edits = ['<div><p>Hello there!</p><p>You can enter any HTML in here.</p><h1>Heading1</h1><h3>Heading 3</h3><ul><li>Lists supported</li><li><ol><li>And sublists</li></ol></li><p>Lists <b>and</b> <i>multiple</i> lines, <sub>subscripts</sub>, <q>quotes</q>, <a href="http://cnx.org">links</a>!</p></div>', '<div>Insert Some other HTML here</div>']
-  var editIndex = 0;
-
-  var texts = Aloha.jQuery('textarea');
-  texts.each(function(i, el) {
-
-    var $el = Aloha.jQuery(el);
-    $el.hide();
-    
-    var edit = Aloha.jQuery(edits[editIndex++ % edits.length]).addClass('document').insertAfter($el).aloha();
-    
-    setInterval(function() {
-      $el.val('<html><body>' + edit.html().trim() + '</body></html>');
-    }, 1000);
-  }); // End texts.each
-}); // End Aloha.ready
-// ]]>
-</script>
-
-
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-transition.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-alert.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-modal.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-dropdown.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-scrollspy.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-tab.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-tooltip.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-popover.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-button.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-collapse.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-carousel.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-typeahead.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/bootstrap-affix.js"></script>
+    <script src="http://twitter.github.com/bootstrap/assets/js/application.js"></script>
   </body>
 </html>
