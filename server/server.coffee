@@ -89,7 +89,7 @@ module.exports = exports = (argv) ->
 
 
   #### Spawns ####
-  env = { }
+  env = { cwd: path.join(__dirname, '..') }
 
   childLogger = (isError, id, promise) -> (data) ->
     lines = data.toString().split('\n')
@@ -155,7 +155,7 @@ module.exports = exports = (argv) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
     if not promise
       console.error "ERROR: Spawned without a promise! id=#{id}"
-    child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
+    child = spawn("sh", ["step#{step}.sh", fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
     child.stdout.on 'data', childLogger(false, id, promise)
     child.stderr.on 'data', childLogger(true, id, promise)
 
