@@ -14,9 +14,6 @@ module.exports = exports = (argv) ->
   hbs         = require('hbs')
   fs          = require('fs') # Just to load jQuery
   EventEmitter = require('events').EventEmitter
-  # Authentication machinery
-  passport    = new (require('passport')).Passport()
-  OpenIDstrat = require('passport-openid').Strategy
 
 
   #### State ####
@@ -56,14 +53,14 @@ module.exports = exports = (argv) ->
       if @history.length > 50
         @history.splice(0,1)
       @emit('update', msg)
-  
+
     work: (message, @status='WORKING') ->
       @update(message)
       @emit('work')
     wait: (message, @status='PAUSED') ->
       @update(message)
       @emit('work')
-  
+
     fail: (msg) ->
       @update msg
       @isProcessing = false
@@ -75,7 +72,7 @@ module.exports = exports = (argv) ->
       @isProcessing = false
       @status = 'FINISHED'
       @emit('finish', @data, @mimeType)
-  
+
   intermediate = {}
   content = {}
   assembled = {}
@@ -102,7 +99,7 @@ module.exports = exports = (argv) ->
         else
           promise.update line
           console.log("id=#{id}: #{line}")
-  
+
   spawnGeneratePDF = (id, promise) ->
     setTimeout(() ->
       href = "#{argv.u}/assembled/#{id}"
@@ -149,8 +146,8 @@ module.exports = exports = (argv) ->
           spawnConvertSVGIfNeeded()
         child.stderr.on 'data', childLogger(true, 'svg2png', promise)
       , 10)
-    
-  
+
+
   spawnGenerateStep = (step, fromUrl, toUrl, id, promise) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
     if not promise
@@ -165,7 +162,7 @@ module.exports = exports = (argv) ->
   # defaultargs.coffee exports a function that takes the argv object that is passed in and then does its
   # best to supply sane defaults for any arguments that are missing.
   argv = require('./defaultargs')(argv)
-  
+
   addToGlobal = (href) ->
     if href not of globalLookups
       id = hashId++
@@ -185,8 +182,6 @@ module.exports = exports = (argv) ->
     app.use(express.bodyParser())
     app.use(express.methodOverride())
     app.use(express.session({ secret: 'notsecret'}))
-    app.use(passport.initialize())
-    app.use(passport.session()) # Must occur after express.session()
     app.use(app.router)
     app.use(express.static(path.join(__dirname, '..', 'static')))
   )
@@ -219,7 +214,7 @@ module.exports = exports = (argv) ->
 
   ##### Get routes #####
   # Routes have mostly been kept together by http verb
-  
+
   # Deposit a URL to convert to PDF/EPUB
   # This can be any URL (for federation)
   deposit = (href, originalId) ->
@@ -234,13 +229,13 @@ module.exports = exports = (argv) ->
 
     # If we already generated this URL then don't spawn it again
     if id not of intermediate or not originalId?
-    
+
       # Create all the promises (to be filled out later)
       intermediate[id] = new Promise()
       content[id] = new Promise(intermediate[id])
       assembled[id] = new Promise(content[id])
       pdfs[id] = new Promise(assembled[id])
-  
+
       spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
 
     id
@@ -269,7 +264,7 @@ module.exports = exports = (argv) ->
         created: val.created
         modified: val.modified
     ret
-  
+
   app.get("/intermediate/", (req, res) ->
     res.send getTasks('/intermediate/', intermediate)
   )
@@ -311,7 +306,7 @@ module.exports = exports = (argv) ->
   app.post("/intermediate/:id([0-9]+)", (req, res) ->
     id = req.params.id
     intermediate[id].finish(req.body.contents, 'text/html; charset=utf-8')
-    
+
     #content[id] = new Promise()
     fromUrl = "#{argv.u}/intermediate/#{id}"
     toUrl   = "#{argv.u}/content/#{id}"
@@ -331,7 +326,7 @@ module.exports = exports = (argv) ->
   app.post("/assembled/:id([0-9]+)", (req, res) ->
     id = req.params.id
     assembled[id].finish(req.body.contents, 'text/html; charset=utf-8')
-    
+
     spawnGeneratePDF(id, pdfs[id])
     #spawnGenerateEPUB(id, epubs[id])
 

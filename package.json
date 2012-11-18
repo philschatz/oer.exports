@@ -12,8 +12,6 @@
     "hbs": "~1.0.1",
     "optimist": "~0.3",
     "jsdom": "~0.2",
-    "passport": "~0.1.5",
-    "passport-openid": "~0.1.1",
     "adm-zip": "~0.1.5",
     "q": "~0.8.5"
   },
@@ -25,8 +23,8 @@
     "mocha": "~0.10",
     "should": "~0.5"
   },
-  "engines": { 
-    "node": "~0.6" 
+  "engines": {
+    "node": "~0.6"
   },
   "repository": {
     "type": "git",
