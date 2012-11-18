@@ -33,22 +33,24 @@ module.exports = exports = (argv) ->
           that.update 'Prerequisite task failed'
           that.fail()
         prerequisite.on 'finish', (_, mimeType) -> that.update "Prerequisite finished generating object with mime-type=#{mimeType}"
+    toString: () ->
+      JSON.stringify @, (key, value) ->
+        # Skip the pid so we can serialize
+        return value if 'pid' != key
     # Send either the data (if available), or a HTTP Status with this JSON
     send: (res) ->
       if @isProcessing
-        res.status(202).send @
+        # Use @toString so the pid is removed and reparse so we send the right content type
+        res.status(202).send JSON.parse(@toString())
       else if @data
         res.header('Content-Type', @mimeType)
         res.send @data
       else
-        res.status(404).send @
-    update: (msg) ->
-      #if @status == 'FINISHED' or @status == 'FAILED'
-      #  message = @history[@history.length-1]
-      #  err = { event: @, message: "This event already completed with status #{@status} and message='#{message}'", newMessage: msg }
-      #  console.log err
-      #  throw err
+        # Use @toString so the pid is removed and reparse so we send the right content type
+        res.status(404).send JSON.parse(@toString())
+    update: (msg=null) ->
       @modified = new Date()
+      return if msg is null
       @history.push msg
       if @history.length > 50
         @history.splice(0,1)
@@ -67,6 +69,7 @@ module.exports = exports = (argv) ->
       @status = 'FAILED'
       @data = null
       @emit('fail')
+      @pid.kill() if @pid
     finish: (@data, @mimeType='text/html; charset=utf-8') ->
       @update "Generated file"
       @isProcessing = false
