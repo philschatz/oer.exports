@@ -38,11 +38,6 @@ argv = optimist
     default   : ''
     describe  : 'Binary that converts a HTML+CSS file into a PDF'
   )
-  .options('x',
-    alias     : 'debug-user'
-    boolean   : true
-    describe  : 'Set this flag if you do not want to have to authenticate'
-  )
   .options('test',
     boolean   : true
     describe  : 'Set server to work with the rspec integration tests'

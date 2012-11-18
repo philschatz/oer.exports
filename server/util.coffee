@@ -6,73 +6,98 @@ EventEmitter = require('events').EventEmitter
 spawn       = require('child_process').spawn
 path        = require('path')
 
-#### State ####
-# Stores the status of an asynchronous Promise
+
+# # Promise
+# Stores the status of an asynchronous Task
 #
-# It's updated by the running task and knows how to send
-# the finished document if processing completed.
+# The `Promise` is updated when the spawned process sends to `stderr`
+# The `Promise` fails when the spawned process completes without sending
+# anything to `stdout`.
+# The `Promise` is sent back as the body of a 202 response when processing is complete.
+#
+# The spawned process directly manipulates the `Promise` and the `Promise`
+# has the logic to generate a correct HTTP Response.
 module.exports.Promise = class Promise extends EventEmitter
-  constructor: (prerequisite) ->
-    @status = 'PENDING'
+  # Private variables and functions go here
+  MAX_HISTORY_SIZE = 50
+  FIELDS_TO_REMOVE = [ 'pid', 'data' ] # Maybe include 'status'
+
+  constructor: () ->
+    @status = 'WORKING'
     @created = new Date()
     @history = []
-    @isProcessing = true
     @data = null
-    if prerequisite?
-      that = @
-      prerequisite.on 'update', (msg) -> that.update "Prerequisite update: #{msg}"
-      prerequisite.on 'fail', () ->
-        that.update 'Prerequisite task failed'
-        that.fail()
-      prerequisite.on 'finish', (_, mimeType) -> that.update "Prerequisite finished generating object with mime-type=#{mimeType}"
+  # Used to serialize a Promise through the web
+  # Filters out private fields
+  # (or ones that can't be serialized)
   toString: () ->
     JSON.stringify @, (key, value) ->
-      # Skip the pid so we can serialize
-      return value if 'pid' != key
+      # Skip the pid and payload so we can serialize
+      return value if key not in FIELDS_TO_REMOVE
+
   # Send either the data (if available), or a HTTP Status with this JSON
+  # Cases (based on `status`:
+  #
+  # * `WORKING`: return a 202 and the JSON Promise (for admin/debugging, progress bars)
+  # * `FINISHED`: `data` is not null so return a 200 with the payload
+  # * `FAILED`: return a 404 with the JSON promise (optional. could just be generic 404)
+  #
+  # `res` is a HTTP response object
   send: (res) ->
-    if @isProcessing
-      # Use @toString so the pid is removed and reparse so we send the right content type
-      res.status(202).send JSON.parse(@toString())
-    else if @data
-      res.header('Content-Type', @mimeType)
-      res.send @data
-    else
-      # Use @toString so the pid is removed and reparse so we send the right content type
-      res.status(404).send JSON.parse(@toString())
+    switch @status
+      when 'WORKING'
+        # Use @toString so the pid is removed and reparse so we send the right content type
+        res.status(202).send JSON.parse(@toString())
+      when 'FINISHED'
+        res.header('Content-Type', @mimeType)
+        res.send @data
+      else
+        # Use @toString so the pid is removed and reparse so we send the right content type
+        res.status(404).send JSON.parse(@toString())
+
+  # Updates a promise while `WORKING`.
+  # Adds a message to the history and updates the modified time
   update: (msg=null) ->
+    console.warn "BUG: Promise.update called but status=#{@status}" if @status != 'WORKING'
     @modified = new Date()
-    return if msg is null
+    return if msg is null # Just update the date
     @history.push msg
-    if @history.length > 50
+    # Clean up the history so it doesn't get too unwieldy
+    if @history.length > MAX_HISTORY_SIZE
       @history.splice(0,1)
+    # Matches the EventEmitter in case anyone is listening
     @emit('update', msg)
 
-  work: (message, @status='WORKING') ->
-    @update(message)
-    @emit('work')
-  wait: (message, @status='PAUSED') ->
-    @update(message)
-    @emit('work')
-
+  # Causes the promise to fail.
+  # From now on the URL will return a 404 until someone restarts the task
   fail: (msg) ->
+    console.warn "BUG: Promise.fail called but status=#{@status}" if @status != 'WORKING'
     @update msg
-    @isProcessing = false
     @status = 'FAILED'
     @data = null
-    @emit('fail')
+    # Send the spawned process a SIGTERM signal
+    # in case the spawned process didn't cause the call to fail() (ie "Kill Button")
     @pid.kill() if @pid
+    @emit('fail')
+  # Causes the promise to complete.
+  # From now on the URL will return a 200 until someone restarts the task
   finish: (@data, @mimeType='text/html; charset=utf-8') ->
-    @update "Generated file"
-    @isProcessing = false
+    console.warn "BUG: Promise.finish called but status=#{@status}" if @status != 'WORKING'
+    @update 'Finished Processing'
     @status = 'FINISHED'
     @emit('finish', @data, @mimeType)
 
 
 #### Spawns ####
+# A spawned task attaches itself to a `Promise` and by parsing IO from the child
+# the promise is updated.
 
+# The script that downloads a Zip (maybe from file://) performs some processing
+# and writes progress updates to `stderr` and the PDF to `stdout`
 PDFGEN_SCRIPT = path.join(__dirname, '..', 'generate-pdf.sh')
 
+# Code that parses stderr and updates
+# the progress when the line 'STATUS: ##%' is seen
 childLogger = (promise) -> (data) ->
   lines = data.toString().split('\n')
   for line in lines
@@ -92,7 +117,8 @@ module.exports.spawnGeneratePDF = (promise, princePath, url, style) ->
       URL: url
       STYLE: style
 
-  child = spawn('sh', [ PDFGEN_SCRIPT ], options)
+  console.log options.env
+  child = spawn('sh', [ '-xv', PDFGEN_SCRIPT ], options)
   # Attach the process to the promise so we can kill it
   promise.pid = child
 

@@ -16,15 +16,30 @@ module.exports = exports = (argv) ->
   # Create the main application object, app.
   app = express.createServer()
 
-  # defaultargs.coffee exports a function that takes the argv object that is passed in and then does its
-  # best to supply sane defaults for any arguments that are missing.
-  argv = require('./defaultargs')(argv)
-
-  # In-memory "database" of all the Promises to make PDFs
+  # # In-memory "database"
+  # This contains a list of `Promise`s
+  #
+  # * the id of a generated PDF is the index into this array
+  # * the value in this array is a `Promise`.
+  #
+  # see [Promises](util.html)
   PDFS = []
 
   # Show all of the options a server is using.
   console.log argv if argv.debug
+
+  #### Webserver configuration ####
+  # Set up all the standard express server options,
+  #
+  # Use the HTML files in the `static` directory
+  app.configure( ->
+    app.set('view options', layout: false)
+    app.use(express.bodyParser())
+    app.use(express.methodOverride())
+    app.use(app.router)
+    app.use(express.static(path.join(__dirname, '..', 'node_modules')))
+    app.use(express.static(path.join(__dirname, '..', 'static')))
+  )
 
   #### Routes ####
 
@@ -89,18 +104,6 @@ module.exports = exports = (argv) ->
     res.redirect('admin.html')
   )
 
-  #### Webserver configuration ####
-  # Set up all the standard express server options,
-  #
-  # Use the HTML files in the `static` directory
-  app.configure( ->
-    app.set('view options', layout: false)
-    app.use(express.bodyParser())
-    app.use(express.methodOverride())
-    app.use(app.router)
-    app.use(express.static(path.join(__dirname, '..', 'node_modules')))
-    app.use(express.static(path.join(__dirname, '..', 'static')))
-  )
 
   ##### Set up standard environments. #####
   # In dev mode turn on console.log debugging as well as showing the stack on err.
