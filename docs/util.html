@@ -1,0 +1,93 @@
+<!DOCTYPE html>  <html> <head>   <title>util.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="server.html">                 server.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               util.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>               <p>A couple of functions and classes that are useful outside the webserver context
+or useful for more than one webserver.</p>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>require dependencies</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">EventEmitter = </span><span class="nx">require</span><span class="p">(</span><span class="s">&#39;events&#39;</span><span class="p">).</span><span class="nx">EventEmitter</span>
+<span class="nv">spawn       = </span><span class="nx">require</span><span class="p">(</span><span class="s">&#39;child_process&#39;</span><span class="p">).</span><span class="nx">spawn</span>
+<span class="nv">path        = </span><span class="nx">require</span><span class="p">(</span><span class="s">&#39;path&#39;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <h3>State</h3>
+
+<p>Stores the status of an asynchronous Promise</p>
+
+<p>It's updated by the running task and knows how to send
+the finished document if processing completed.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">module.exports.Promise = </span><span class="k">class</span> <span class="nx">Promise</span> <span class="k">extends</span> <span class="nx">EventEmitter</span>
+  <span class="nv">constructor: </span><span class="nf">(prerequisite) -&gt;</span>
+    <span class="vi">@status = </span><span class="s">&#39;PENDING&#39;</span>
+    <span class="vi">@created = </span><span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+    <span class="vi">@history = </span><span class="p">[]</span>
+    <span class="vi">@isProcessing = </span><span class="kc">true</span>
+    <span class="vi">@data = </span><span class="kc">null</span>
+    <span class="k">if</span> <span class="nx">prerequisite</span><span class="o">?</span>
+      <span class="nv">that = </span><span class="nx">@</span>
+      <span class="nx">prerequisite</span><span class="p">.</span><span class="kc">on</span> <span class="s">&#39;update&#39;</span><span class="p">,</span> <span class="nf">(msg) -&gt;</span> <span class="nx">that</span><span class="p">.</span><span class="nx">update</span> <span class="s">&quot;Prerequisite update: </span><span class="si">#{</span><span class="nx">msg</span><span class="si">}</span><span class="s">&quot;</span>
+      <span class="nx">prerequisite</span><span class="p">.</span><span class="kc">on</span> <span class="s">&#39;fail&#39;</span><span class="p">,</span> <span class="nf">() -&gt;</span>
+        <span class="nx">that</span><span class="p">.</span><span class="nx">update</span> <span class="s">&#39;Prerequisite task failed&#39;</span>
+        <span class="nx">that</span><span class="p">.</span><span class="nx">fail</span><span class="p">()</span>
+      <span class="nx">prerequisite</span><span class="p">.</span><span class="kc">on</span> <span class="s">&#39;finish&#39;</span><span class="p">,</span> <span class="nf">(_, mimeType) -&gt;</span> <span class="nx">that</span><span class="p">.</span><span class="nx">update</span> <span class="s">&quot;Prerequisite finished generating object with mime-type=</span><span class="si">#{</span><span class="nx">mimeType</span><span class="si">}</span><span class="s">&quot;</span>
+  <span class="nv">toString: </span><span class="nf">() -&gt;</span>
+    <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span> <span class="nx">@</span><span class="p">,</span> <span class="nf">(key, value) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>Skip the pid so we can serialize</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">return</span> <span class="nx">value</span> <span class="k">if</span> <span class="s">&#39;pid&#39;</span> <span class="o">!=</span> <span class="nx">key</span></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>Send either the data (if available), or a HTTP Status with this JSON</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">send: </span><span class="nf">(res) -&gt;</span>
+    <span class="k">if</span> <span class="nx">@isProcessing</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>Use @toString so the pid is removed and reparse so we send the right content type</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mi">202</span><span class="p">).</span><span class="nx">send</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">@toString</span><span class="p">())</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="nx">@data</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">header</span><span class="p">(</span><span class="s">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="nx">@mimeType</span><span class="p">)</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">send</span> <span class="nx">@data</span>
+    <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>Use @toString so the pid is removed and reparse so we send the right content type</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">res</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="mi">404</span><span class="p">).</span><span class="nx">send</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">@toString</span><span class="p">())</span>
+  <span class="nv">update: </span><span class="nf">(msg=null) -&gt;</span>
+    <span class="vi">@modified = </span><span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+    <span class="k">return</span> <span class="k">if</span> <span class="nx">msg</span> <span class="o">is</span> <span class="kc">null</span>
+    <span class="nx">@history</span><span class="p">.</span><span class="nx">push</span> <span class="nx">msg</span>
+    <span class="k">if</span> <span class="nx">@history</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">50</span>
+      <span class="nx">@history</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nx">@emit</span><span class="p">(</span><span class="s">&#39;update&#39;</span><span class="p">,</span> <span class="nx">msg</span><span class="p">)</span>
+
+  <span class="nv">work: </span><span class="nf">(message, @status=&#39;WORKING&#39;) -&gt;</span>
+    <span class="nx">@update</span><span class="p">(</span><span class="nx">message</span><span class="p">)</span>
+    <span class="nx">@emit</span><span class="p">(</span><span class="s">&#39;work&#39;</span><span class="p">)</span>
+  <span class="nv">wait: </span><span class="nf">(message, @status=&#39;PAUSED&#39;) -&gt;</span>
+    <span class="nx">@update</span><span class="p">(</span><span class="nx">message</span><span class="p">)</span>
+    <span class="nx">@emit</span><span class="p">(</span><span class="s">&#39;work&#39;</span><span class="p">)</span>
+
+  <span class="nv">fail: </span><span class="nf">(msg) -&gt;</span>
+    <span class="nx">@update</span> <span class="nx">msg</span>
+    <span class="vi">@isProcessing = </span><span class="kc">false</span>
+    <span class="vi">@status = </span><span class="s">&#39;FAILED&#39;</span>
+    <span class="vi">@data = </span><span class="kc">null</span>
+    <span class="nx">@emit</span><span class="p">(</span><span class="s">&#39;fail&#39;</span><span class="p">)</span>
+    <span class="nx">@pid</span><span class="p">.</span><span class="nx">kill</span><span class="p">()</span> <span class="k">if</span> <span class="nx">@pid</span>
+  <span class="nv">finish: </span><span class="nf">(@data, @mimeType=&#39;text/html; charset=utf-8&#39;) -&gt;</span>
+    <span class="nx">@update</span> <span class="s">&quot;Generated file&quot;</span>
+    <span class="vi">@isProcessing = </span><span class="kc">false</span>
+    <span class="vi">@status = </span><span class="s">&#39;FINISHED&#39;</span>
+    <span class="nx">@emit</span><span class="p">(</span><span class="s">&#39;finish&#39;</span><span class="p">,</span> <span class="nx">@data</span><span class="p">,</span> <span class="nx">@mimeType</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <h3>Spawns</h3>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">PDFGEN_SCRIPT = </span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span> <span class="s">&#39;..&#39;</span><span class="p">,</span> <span class="s">&#39;generate-pdf.sh&#39;</span><span class="p">)</span>
+
+<span class="nv">childLogger = </span><span class="nf">(promise) -&gt;</span> <span class="nf">(data) -&gt;</span>
+  <span class="nv">lines = </span><span class="nx">data</span><span class="p">.</span><span class="nx">toString</span><span class="p">().</span><span class="nx">split</span><span class="p">(</span><span class="s">&#39;\n&#39;</span><span class="p">)</span>
+  <span class="k">for</span> <span class="nx">line</span> <span class="k">in</span> <span class="nx">lines</span>
+    <span class="k">if</span> <span class="nx">line</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">1</span>
+      <span class="nv">percent = </span><span class="sr">/^STATUS: (\d+)%/</span><span class="p">.</span><span class="nx">exec</span><span class="p">(</span><span class="nx">line</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nx">percent</span>
+        <span class="nv">promise.progress.finished = </span><span class="nb">parseInt</span><span class="p">(</span><span class="nx">percent</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">else</span>
+        <span class="nx">promise</span><span class="p">.</span><span class="nx">update</span> <span class="nx">line</span>
+
+<span class="nv">module.exports.spawnGeneratePDF = </span><span class="nf">(promise, princePath, url, style) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>Except for cwd the rest are environment variables PDFGEN_SCRIPT expects</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">options =</span>
+    <span class="nv">cwd: </span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">__dirname</span><span class="p">,</span> <span class="s">&#39;..&#39;</span><span class="p">)</span>
+    <span class="nv">env:</span>
+      <span class="nv">PRINCEXML_PATH: </span><span class="nx">princePath</span>
+      <span class="nv">URL: </span><span class="nx">url</span>
+      <span class="nv">STYLE: </span><span class="nx">style</span>
+
+  <span class="nv">child = </span><span class="nx">spawn</span><span class="p">(</span><span class="s">&#39;sh&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="nx">PDFGEN_SCRIPT</span> <span class="p">],</span> <span class="nx">options</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>Attach the process to the promise so we can kill it</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">promise.pid = </span><span class="nx">child</span>
+
+  <span class="nv">chunks = </span><span class="p">[]</span>
+  <span class="nv">chunkLen = </span><span class="mi">0</span>
+  <span class="nx">child</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="kc">on</span> <span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="nf">(chunk) -&gt;</span>
+    <span class="nx">chunks</span><span class="p">.</span><span class="nx">push</span> <span class="nx">chunk</span>
+    <span class="nx">chunkLen</span> <span class="o">+=</span> <span class="nx">chunk</span><span class="p">.</span><span class="nx">length</span>
+  <span class="nx">child</span><span class="p">.</span><span class="kc">on</span> <span class="s">&#39;exit&#39;</span><span class="p">,</span> <span class="nf">(code) -&gt;</span>
+    <span class="nv">buf = </span><span class="k">new</span> <span class="nx">Buffer</span><span class="p">(</span><span class="nx">chunkLen</span><span class="p">)</span>
+    <span class="nv">pos = </span><span class="mi">0</span>
+    <span class="k">for</span> <span class="nx">chunk</span> <span class="k">in</span> <span class="nx">chunks</span>
+      <span class="nx">chunk</span><span class="p">.</span><span class="nx">copy</span><span class="p">(</span><span class="nx">buf</span><span class="p">,</span> <span class="nx">pos</span><span class="p">)</span>
+      <span class="nx">pos</span> <span class="o">+=</span> <span class="nx">chunk</span><span class="p">.</span><span class="nx">length</span>
+    <span class="nx">promise</span><span class="p">.</span><span class="nx">finish</span><span class="p">(</span><span class="nx">buf</span><span class="p">,</span> <span class="s">&#39;application/pdf&#39;</span><span class="p">)</span>
+
+  <span class="nx">child</span><span class="p">.</span><span class="nx">stderr</span><span class="p">.</span><span class="kc">on</span> <span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="nx">childLogger</span><span class="p">(</span><span class="nx">promise</span><span class="p">)</span>
+  <span class="nv">promise.progress = </span><span class="p">{</span><span class="nv">finished: </span><span class="mi">0</span><span class="p">,</span> <span class="nv">total: </span><span class="mi">100</span><span class="p">}</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
