@@ -33,6 +33,11 @@ argv = optimist
     default   : path.join(__dirname)
     describe  : 'Application root folder'
   )
+  .options('w',
+    alias     : 'phantomjs'
+    default   : ''
+    describe  : 'Link to PhantomJS binary'
+  )
   .options('g',
     alias     : 'pdfgen'
     default   : ''

@@ -19,6 +19,15 @@ module.exports = exports = (argv) ->
   OpenIDstrat = require('passport-openid').Strategy
 
 
+  # Error if required args are not included
+  REQUIRED_ARGS = [ 'phantomjs', 'pdfgen']
+  REQUIRED_ARGS.forEach (arg) ->
+    if not argv[arg]
+      console.error "Required command line argument missing: #{arg}"
+      throw new Error "Required command line argument missing"
+
+
+
   #### State ####
   # Stores in-memory state
   class Promise extends EventEmitter
@@ -56,14 +65,14 @@ module.exports = exports = (argv) ->
       if @history.length > 50
         @history.splice(0,1)
       @emit('update', msg)
-  
+
     work: (message, @status='WORKING') ->
       @update(message)
       @emit('work')
     wait: (message, @status='PAUSED') ->
       @update(message)
       @emit('work')
-  
+
     fail: (msg) ->
       @update msg
       @isProcessing = false
@@ -75,7 +84,7 @@ module.exports = exports = (argv) ->
       @isProcessing = false
       @status = 'FINISHED'
       @emit('finish', @data, @mimeType)
-  
+
   intermediate = {}
   content = {}
   assembled = {}
@@ -89,7 +98,10 @@ module.exports = exports = (argv) ->
 
 
   #### Spawns ####
-  env = { }
+  env =
+    env: process.env
+  env.env['PHANTOMJS_BIN'] = argv.phantomjs
+  env.env['PDF_BIN'] = argv.pdfgen
 
   childLogger = (isError, id, promise) -> (data) ->
     lines = data.toString().split('\n')
@@ -102,12 +114,12 @@ module.exports = exports = (argv) ->
         else
           promise.update line
           console.log("id=#{id}: #{line}")
-  
+
   spawnGeneratePDF = (id, promise) ->
     setTimeout(() ->
       href = "#{argv.u}/assembled/#{id}"
       console.log ("id=#{id} Generating PDF")
-      child = spawn(argv.g, [ '--input=xhtml', "--style=static/css/ccap-physics.css", '--verbose', '--output=/dev/stdout', href ], env)
+      child = spawn(argv.pdfgen, [ '--input=xhtml', "--style=static/css/ccap-physics.css", '--verbose', '--output=/dev/stdout', href ], env)
       chunks = []
       chunkLen = 0
       child.stdout.on 'data', (chunk) ->
@@ -149,13 +161,13 @@ module.exports = exports = (argv) ->
           spawnConvertSVGIfNeeded()
         child.stderr.on 'data', childLogger(true, 'svg2png', promise)
       , 10)
-    
-  
+
+
   spawnGenerateStep = (step, fromUrl, toUrl, id, promise) ->
     console.log "Spawning step#{step}.sh [#{fromUrl}, #{toUrl}, #{id}, #{argv.u}/deposit, #{argv.u}]"
     if not promise
       console.error "ERROR: Spawned without a promise! id=#{id}"
-    child = spawn("step#{step}.sh", [fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
+    child = spawn('sh', ['-xv', "step#{step}.sh", fromUrl, toUrl, id, "#{argv.u}/deposit", "#{argv.u}"], env)
     child.stdout.on 'data', childLogger(false, id, promise)
     child.stderr.on 'data', childLogger(true, id, promise)
 
@@ -165,7 +177,7 @@ module.exports = exports = (argv) ->
   # defaultargs.coffee exports a function that takes the argv object that is passed in and then does its
   # best to supply sane defaults for any arguments that are missing.
   argv = require('./defaultargs')(argv)
-  
+
   addToGlobal = (href) ->
     if href not of globalLookups
       id = hashId++
@@ -219,7 +231,7 @@ module.exports = exports = (argv) ->
 
   ##### Get routes #####
   # Routes have mostly been kept together by http verb
-  
+
   # Deposit a URL to convert to PDF/EPUB
   # This can be any URL (for federation)
   deposit = (href, originalId) ->
@@ -234,13 +246,13 @@ module.exports = exports = (argv) ->
 
     # If we already generated this URL then don't spawn it again
     if id not of intermediate or not originalId?
-    
+
       # Create all the promises (to be filled out later)
       intermediate[id] = new Promise()
       content[id] = new Promise(intermediate[id])
       assembled[id] = new Promise(content[id])
       pdfs[id] = new Promise(assembled[id])
-  
+
       spawnGenerateStep(0, href, "#{argv.u}/intermediate/#{id}", id, intermediate[id])
 
     id
@@ -269,7 +281,7 @@ module.exports = exports = (argv) ->
         created: val.created
         modified: val.modified
     ret
-  
+
   app.get("/intermediate/", (req, res) ->
     res.send getTasks('/intermediate/', intermediate)
   )
@@ -311,7 +323,7 @@ module.exports = exports = (argv) ->
   app.post("/intermediate/:id([0-9]+)", (req, res) ->
     id = req.params.id
     intermediate[id].finish(req.body.contents, 'text/html; charset=utf-8')
-    
+
     #content[id] = new Promise()
     fromUrl = "#{argv.u}/intermediate/#{id}"
     toUrl   = "#{argv.u}/content/#{id}"
@@ -331,7 +343,7 @@ module.exports = exports = (argv) ->
   app.post("/assembled/:id([0-9]+)", (req, res) ->
     id = req.params.id
     assembled[id].finish(req.body.contents, 'text/html; charset=utf-8')
-    
+
     spawnGeneratePDF(id, pdfs[id])
     #spawnGenerateEPUB(id, epubs[id])
 
