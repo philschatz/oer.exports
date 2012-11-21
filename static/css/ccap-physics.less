@@ -20,6 +20,13 @@
   display: none;
 }
 
+/**************************************
+ * Hide the end-of-book solutions colophon
+ **************************************/
+div.colophon.end-of-book-solutions {
+  display: none;
+}
+
 
 /********* Chapter Introduction styles *********/
 
@@ -85,6 +92,16 @@
 /***************** Title page *****************/
 
 
+/* Introduction banner */
+h1.title { //ccap-chapter
+  background-color: @orange;
+}
+
+.book > * > .titlepage .cnx-gentext-t::before,
+h1.title .cnx-gentext-n { //.ccap-chapter-number
+  color: black;
+  padding-right: 1em;
+}
 
 .chapter .introduction > .title span { //.ccap-intro-title
   border-bottom: 1px solid @orange;
@@ -130,45 +147,9 @@ a {
 /****************** Modern-Textbook classes ****************/
 
 /* Numbered sections should have the number in blue */
-.preface, .chapter, .appendix {
-
-  > .title { //ccap-chapter
-    display: block;
-    color: white;
-    background-color: @orange;
-    
-    &::before { //.ccap-chapter-number
-      color: black;
-      padding-right: 1em;
-    }
-  }
-
-  // 3.1 Animals
-  > .section,
-  > section {
-    > .title {
-      display: block;
-      font-weight: bold;
-      font-size: 12pt;
-    
-      &::before {
-        color: @blue;
-      }
-    }
-
-    // Modules use the h# elements for titles and for some reason don't add the titile class.
-    > .section,
-    > section {
-      > .title {
-        display: block;
-        font-size: 10pt;
-        color: @blue;
-      }
-    }
-
-  }
+h2::before {
+  color: @blue;
 }
-
 
 /* "Key Concepts" Introduction table */
 .chapter .toc {
@@ -179,13 +160,13 @@ a {
 }
 
 
-table {
+.table table {
   background-color: @cream;
 }
-table th {
+.table th {
   background-color: @green;
 }
-table caption {
+.table caption {
   color: @dark-orange;
 }
 
@@ -202,8 +183,8 @@ table caption {
 .note > .title {
   .ccap-note-title;
 }
-figure > figcaption::before,
-figure > .title {
+.figure > .caption::before,
+.figure > .title {
   .ccap-figure-title;
 }
 
@@ -212,18 +193,18 @@ figure > .title {
 /******************************************************
  * End of chapter customizations
  ******************************************************/
-.cnx-eoc .section .title a {
-	color: @blue;
-}
+.cnx-eoc {
+  .section .title a { color: @blue; }
 
-.problems-exercises {
-  .x-column-count(2);
-  page-break-before: always;
-}
+  &.problems-exercises {
+    .x-column-count(2);
+    page-break-before: always;
+  }
 
-/* Allow sections in the 2-column problems-exercises to break */
-.problems-exercises .section {
-  page-break-inside: auto;
+  /* Allow sections in the 2-column problems-exercises to break */
+  &.problems-exercises .section {
+    page-break-inside: auto;
+  }
 }
 
 
@@ -241,17 +222,16 @@ figure > .title {
 .cnx-gentext-exercise.cnx-gentext-n {
 	font-weight: bold;
 }
-
-.example > .title, .example::before,
-.cnx-eoc > .title,
-.index > .title,
+.example > .title > *,
+.cnx-eoc > .title > *,
+.index > .title > *,
 .glossary > .titlepage > div > div > * {
   .ccap-example-title;
 	font-size: small;
 	font-weight: bold;
 	page-break-after: avoid;
 }
-.exercise > .title {
+.exercise > .title > * {
   .ccap-exercise-title;
 	font-size: small;
 	font-weight: bold;
