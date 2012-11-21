@@ -20,7 +20,7 @@ module.exports = exports = (argv) ->
 
 
   # Error if required args are not included
-  REQUIRED_ARGS = [ 'phantomjs', 'pdfgen']
+  REQUIRED_ARGS = [ 'phantomjs', 'pdfgen', 'cnxmlutils']
   REQUIRED_ARGS.forEach (arg) ->
     if not argv[arg]
       console.error "Required command line argument missing: #{arg}"

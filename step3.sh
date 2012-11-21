@@ -9,11 +9,6 @@ LOCALHOST=$5
 ROOT_DIR=`dirname "$0"`
 ROOT_DIR=`cd "$ROOT"; pwd`
 
-PHANTOMJS_BIN=${ROOT_DIR}/external/phantomjs/bin/phantomjs
-CONTENT_TO_PRESENTATION_XSL=${ROOT_DIR}/external/oer.exports/xsl/cnxml-clean.xsl
-CNXML2HTML5_XSL=${ROOT_DIR}/external/rhaptos.cnxmlutils/rhaptos/cnxmlutils/xsl/collxml-to-html5.xsl # cnxml-to-html5.xsl
-OER_INTERACTIVE=${ROOT_DIR}/external/oer.interactive
-
 TEMP_DIR=$(pwd)
 
 # Emulate the javascript stored in the HTML (and run mathjax)

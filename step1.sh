@@ -10,8 +10,6 @@ ORIGINAL_ID=$6
 ROOT_DIR=`dirname "$0"`
 ROOT_DIR=`cd "$ROOT"; pwd`
 
-PHANTOMJS_BIN=${PHANTOMJS_BIN}
-
 TEMP_DIR=$(pwd)
 
 # Emulate the javascript stored in the HTML (and run mathjax)

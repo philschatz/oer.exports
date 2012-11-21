@@ -9,7 +9,7 @@ ROOT_DIR=`dirname "$0"`
 ROOT_DIR=`cd "$ROOT"; pwd`
 
 CONTENT_TO_PRESENTATION_XSL=${ROOT_DIR}/xsl/cnxml-clean.xsl
-CNXML2HTML5_XSL=${ROOT_DIR}/external/rhaptos.cnxmlutils/rhaptos/cnxmlutils/xsl/collxml-to-html5.xsl # cnxml-to-html5.xsl
+CNXML2HTML5_XSL=${RHAPTOS_CNXMLUTILS_PATH}/rhaptos/cnxmlutils/xsl/collxml-to-html5.xsl # cnxml-to-html5.xsl
 
 TEMP_DIR=$(pwd)
 CNXML_FILE=${TEMP_DIR}/${ID}.cnxml

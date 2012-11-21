@@ -15,8 +15,8 @@ To download the dependencies
   Make sure `rsvg-convert -v` works from the command line.
 * Download `phantomjs` from http://phantomjs.org
 * Download PrinceXML from http://princexml.com
-* Check out http://github.com/Connexions/rhaptos.cnxmlutils (`cnxml2html` branch)
-  and put it in `./externals`
+* Check out http://github.com/Connexions/rhaptos.cnxmlutils somewhere
+  (switch to `cnxml2html` branch)
 
 Optional: download the following libraries and toss them into `./static/lib`
 
@@ -25,9 +25,12 @@ Optional: download the following libraries and toss them into `./static/lib`
 *  nv       ( Put in `nv.d3.js` and `nv.d3.css` from https://github.com/novus/nvd3 )
 *  TangleJS ( git clone https://github.com/worrydream/Tangle.git )
 
-And, to start it up
+And, to start it up (all one line)
 
-    node bin/server.js --pdfgen ${PATH_TO_PRINCE_BINARY} --phantomjs ${PATH_TO_PHANTOMJS_BINARY}
+    node bin/server.js
+        --pdfgen ${PATH_TO_PRINCE_BINARY}
+        --phantomjs ${PATH_TO_PHANTOMJS_BINARY}
+        --cnxmlutils ${RHAPTOS_CNXMLUTILS_PATH}
 
 
 Then, point your browser to the admin interface at http://localhost:3000/
