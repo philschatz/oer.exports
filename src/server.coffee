@@ -20,7 +20,7 @@ module.exports = exports = (argv) ->
 
 
   # Error if required args are not included
-  REQUIRED_ARGS = [ 'phantomjs', 'pdfgen', 'cnxmlutils']
+  REQUIRED_ARGS = [ 'phantomjs', 'pdfgen' ]
   REQUIRED_ARGS.forEach (arg) ->
     if not argv[arg]
       console.error "Required command line argument missing: #{arg}"
@@ -116,51 +116,47 @@ module.exports = exports = (argv) ->
           console.log("id=#{id}: #{line}")
 
   spawnGeneratePDF = (id, promise) ->
-    setTimeout(() ->
-      href = "#{argv.u}/assembled/#{id}"
-      console.log ("id=#{id} Generating PDF")
-      child = spawn(argv.pdfgen, [ '--input=xhtml', "--style=static/css/ccap-physics.css", '--verbose', '--output=/dev/stdout', href ], env)
-      chunks = []
-      chunkLen = 0
-      child.stdout.on 'data', (chunk) ->
-        chunks.push chunk
-        chunkLen += chunk.length
-      child.on 'exit', (code) ->
-        buf = new Buffer(chunkLen)
-        pos = 0
-        for chunk in chunks
-          chunk.copy(buf, pos)
-          pos += chunk.length
-        promise.finish(buf, 'application/pdf')
-      child.stderr.on 'data', childLogger(true, id, promise)
-    , 10)
+    href = "#{argv.u}/assembled/#{id}"
+    console.log ("id=#{id} Generating PDF")
+    child = spawn(argv.pdfgen, [ '--input=xhtml', "--style=static/css/ccap-physics.css", '--verbose', '--output=/dev/stdout', href ], env)
+    chunks = []
+    chunkLen = 0
+    child.stdout.on 'data', (chunk) ->
+      chunks.push chunk
+      chunkLen += chunk.length
+    child.on 'exit', (code) ->
+      buf = new Buffer(chunkLen)
+      pos = 0
+      for chunk in chunks
+        chunk.copy(buf, pos)
+        pos += chunk.length
+      promise.finish(buf, 'application/pdf')
+    child.stderr.on 'data', childLogger(true, id, promise)
 
   spawnConvertSVGIfNeeded = () ->
     if resourcesQueueIndex < resources.length and not resourcesProcessing
       resourcesProcessing = true
-      setTimeout(() ->
-        console.log ("id=SVG Starting resourceId=#{resourcesQueueIndex}")
-        promise = resources[resourcesQueueIndex]
-        child = spawn('rsvg-convert', [ '--keep-aspect-ratio', "--dpi-x=#{SVG_TO_PNG_DPI}", "--dpi-y=#{SVG_TO_PNG_DPI}" ], env)
-        chunks = []
-        chunkLen = 0
-        child.stdin.write(promise.svg)
-        child.stdin.end()
-        child.stdout.on 'data', (chunk) ->
-          chunks.push chunk
-          chunkLen += chunk.length
-        child.on 'exit', (code) ->
-          resourcesProcessing = false
-          png = new Buffer(chunkLen)
-          pos = 0
-          for chunk in chunks
-            chunk.copy(png, pos)
-            pos += chunk.length
-          promise.finish(png, 'image/png')
-          resourcesQueueIndex++
-          spawnConvertSVGIfNeeded()
-        child.stderr.on 'data', childLogger(true, 'svg2png', promise)
-      , 10)
+      console.log ("id=SVG Starting resourceId=#{resourcesQueueIndex}")
+      promise = resources[resourcesQueueIndex]
+      child = spawn('rsvg-convert', [ '--keep-aspect-ratio', "--dpi-x=#{SVG_TO_PNG_DPI}", "--dpi-y=#{SVG_TO_PNG_DPI}" ], env)
+      chunks = []
+      chunkLen = 0
+      child.stdin.write(promise.svg)
+      child.stdin.end()
+      child.stdout.on 'data', (chunk) ->
+        chunks.push chunk
+        chunkLen += chunk.length
+      child.on 'exit', (code) ->
+        resourcesProcessing = false
+        png = new Buffer(chunkLen)
+        pos = 0
+        for chunk in chunks
+          chunk.copy(png, pos)
+          pos += chunk.length
+        promise.finish(png, 'image/png')
+        resourcesQueueIndex++
+        spawnConvertSVGIfNeeded()
+      child.stderr.on 'data', childLogger(true, 'svg2png', promise)
 
 
   spawnGenerateStep = (step, fromUrl, toUrl, id, promise) ->

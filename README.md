@@ -15,8 +15,6 @@ To download the dependencies
   Make sure `rsvg-convert -v` works from the command line.
 * Download `phantomjs` from http://phantomjs.org
 * Download PrinceXML from http://princexml.com
-* Check out http://github.com/Connexions/rhaptos.cnxmlutils somewhere
-  (switch to `cnxml2html` branch)
 
 Optional: download the following libraries and toss them into `./static/lib`
 
@@ -30,10 +28,9 @@ And, to start it up (all one line)
     node bin/server.js
         --pdfgen ${PATH_TO_PRINCE_BINARY}
         --phantomjs ${PATH_TO_PHANTOMJS_BINARY}
-        --cnxmlutils ${RHAPTOS_CNXMLUTILS_PATH}
 
 
-Then, point your browser to the admin interface at http://localhost:3000/
+Then, point your browser to the admin interface at http://localhost:3001/
 
 From the admin page use the input box in "Deposit new content from a URL" to point to a CNXML/CollXML file.
 This will pull in and clean up all related documents.

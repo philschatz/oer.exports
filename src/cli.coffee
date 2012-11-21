@@ -43,11 +43,6 @@ argv = optimist
     default   : ''
     describe  : 'Binary that converts a HTML+CSS file into a PDF'
   )
-  .options('c',
-    alias     : 'cnxmlutils'
-    default   : ''
-    describe  : 'Path to rhaptos.cnxmlutils checkout'
-  )
   .options('x',
     alias     : 'debug-user'
     boolean   : true
