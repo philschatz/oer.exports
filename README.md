@@ -11,12 +11,12 @@ To download the dependencies
 
     npm install .
 
-Check out related github projects (and put them in `./external`)
-
-*  http://github.com/philschatz/oer.epubcss (Use the `oer.exports-html` branch)
-*  http://github.com/Connexions/rhaptos.cnxmlutils (`cnxml2html` branch)
-*  PhantomJS directory ( `./external/phantomjs/bin/phantomjs` should work)
-*  PrinceXML ( `./external/prince/bin/prince` should work)
+* Install `rsvg-convert` (`apt-get install rsvg` on Debian/Ubuntu).
+  Make sure `rsvg-convert -v` works from the command line.
+* Download `phantomjs` from http://phantomjs.org
+* Download PrinceXML from http://princexml.com
+* Check out http://github.com/Connexions/rhaptos.cnxmlutils (`cnxml2html` branch)
+  and put it in `./externals`
 
 Optional: download the following libraries and toss them into `./static/lib`
 
@@ -27,7 +27,7 @@ Optional: download the following libraries and toss them into `./static/lib`
 
 And, to start it up
 
-    node bin/server.js --pdfgen /path/to/prince-or-wkhtml2pdf
+    node bin/server.js --pdfgen ${PATH_TO_PRINCE_BINARY} --phantomjs ${PATH_TO_PHANTOMJS_BINARY}
 
 
 Then, point your browser to the admin interface at http://localhost:3000/
