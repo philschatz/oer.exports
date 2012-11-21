@@ -29,8 +29,57 @@ And, to start it up (all one line)
         --pdfgen ${PATH_TO_PRINCE_BINARY}
         --phantomjs ${PATH_TO_PHANTOMJS_BINARY}
 
+Then, point your browser to the admin console at http://localhost:3001/
 
-Then, point your browser to the admin interface at http://localhost:3001/
+## "Ok, so what now?"
+
+Deposit a piece of content (`example.cnxml`) and watch all the tables populate.
+If they don't all end up completing successfully then probably the dependencies were not met
+or you passed in the wrong command line arguments.
+
+## "What are these tables?"
+
+When you deposit a URL to a cnxml or collxml
+  (eventually it'll only accept HTML files)
+  several things happen:
+
+1. The local cache of that URL is invalidated
+2. The remote file is retrieved and converted to HTML using XSLT
+3. This intermediate HTML file is POSTed and stored at `/intermediate/[id]`
+
+At this point none of the links or images have been converted; they still have the original hrefs
+but the HTML file has a few additional pieces in it:
+
+* A `meta` element that stores the original URL so links/images can be converted to absolute URLs
+* `script` tags for javascript tools like MathJax
+
+The next step takes the HTML and
+
+1. Loads the javascript libraries
+2. Enqueues a task to GET the remote URLs and store them locally in `/resources/[uuid]`
+3. Convert links to absolute URLs
+4. If a link has the special class `xinclude` then a deposit is done
+   to generate a PDF for that content (it may already be cached)
+5. Once all these tasks have spawned
+   (since they're `Promises` we already know what their id/URL will be)
+   the HTML is POSTed to `/content/[id]`
+
+The next step takes the HTML with new local id's and waits until each piece of content
+is deposited to `/content[id1,2,3]`.
+
+1. As they appear in `/content` each one is loaded and included in the DOM
+   (these were links with `.xinclude`)
+2. The resulting HTML file is POSTed to `/assembled/[id]`.
+
+Finally, we can actually generate a PDF. All the modules have been assembled into
+one large HTML file and the images have been loaded and saved locally in `/resources/`.
+
+The PDF is then stored at `/content/[id].pdf`.
+
+
+# "Cool! What else can I do?"
+
+Here are some notes I haven't gotten around to rewriting:
 
 From the admin page use the input box in "Deposit new content from a URL" to point to a CNXML/CollXML file.
 This will pull in and clean up all related documents.
