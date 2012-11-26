@@ -8,7 +8,7 @@
   xmlns="http://www.w3.org/1999/xhtml"
   xmlns:mod="http://cnx.rice.edu/#moduleIds"
   xmlns:bib="http://bibtexml.sf.net/"
-  
+
   xmlns:data="http://dev.w3.org/html5/spec/#custom"
   >
 
@@ -16,6 +16,12 @@
 
 <xsl:include href="cnxml-to-html5.xsl"/>
 
+<xsl:template match="html">
+  <xsl:apply-templates select="body/*"/>
+</xsl:template>
+<xsl:template match="*">
+  <xsl:copy><xsl:apply-templates select="@*|node()"/></xsl:copy>
+</xsl:template>
 
 <xsl:template match="col:*/@*">
 	<xsl:copy/>
@@ -41,9 +47,9 @@
     <xsl:apply-templates select="node()"/> <!-- this wil match cnx:title and col:subcollection -->
   </section>
 </xsl:template>
-  
-  
-  
+
+
+
 
 <!-- end of test TOC -->
 
@@ -66,7 +72,7 @@
 
 
 <!-- Free-floating Modules in a col:collection should be treated as Chapters -->
-<xsl:template match="col:collection/col:content/col:subcollection/col:module"> 
+<xsl:template match="col:collection/col:content/col:subcollection/col:module">
   <section class="chapter">
 		<xsl:apply-templates select="@*"/>
 		<xsl:call-template name="cnx.xinclude.module"/>
@@ -77,7 +83,7 @@
 	<section class="chapter">
 		<xsl:apply-templates select="@*|node()"/>
 	</section>
-</xsl:template>  
+</xsl:template>
 
 <xsl:template match="col:collection/col:content/col:subcollection/col:content/col:subcollection" priority="10">
   <section class="chapter">
