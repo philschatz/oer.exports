@@ -302,6 +302,9 @@ module.exports = exports = (argv) ->
   app.get("/intermediate/:id([0-9]+)", (req, res) ->
     renderObj res, 'intermediate', intermediate, req.params.id
   )
+  app.get("/intermediate/:id([0-9]+).json", (req, res) ->
+    res.send intermediate[req.params.id]
+  )
   app.get("/assembled/:id([0-9]+)", (req, res) ->
     renderObj res, 'assembled', assembled, req.params.id
   )
