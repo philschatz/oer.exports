@@ -64,7 +64,7 @@ page.open encodeURI(inputUrl), (status) ->
     else
       console.error "Could not find #{path}"
       phantom.exit(1)
-  
+
   #loadScript(programDir + '/static/lib/jquery-latest.js')
 
   needToKeepWaiting = page.evaluate((outputUrl, depositUrl, LOCALHOST, id) ->
@@ -79,7 +79,7 @@ page.open encodeURI(inputUrl), (status) ->
     #script = document.createElement('script')
     #script.setAttribute('src', "#{LOCALHOST}/lib/mathjax/MathJax.js?config=TeX-AMS-MML_SVG-full")
     #document.getElementsByTagName('body')[0].appendChild(script)
-    
+
     #loadScript "#{LOCALHOST}/lib/d3.js"
     #loadScript "#{LOCALHOST}/lib/nv.d3.js"
     #loadScript "#{LOCALHOST}/lib/Tangle/Tangle.js"
@@ -92,11 +92,11 @@ page.open encodeURI(inputUrl), (status) ->
     #loadScript "#{LOCALHOST}/lib/injector.js"
 
     callback = () ->
-    
+
       # We need to convert all the canvas elements and images with dataURI's to images
       rasterizer = new (window.Rasterize)()
       rasterizer.convert()
-      
+
       # Rewrite the URLs for XIncluded documents and begin processing them
       # Given the <base> element in <head> we can resolve relative URLs
       base = $('head meta[href]').attr('href')
@@ -117,7 +117,7 @@ page.open encodeURI(inputUrl), (status) ->
         else
           # It's a relative path
           baseHref + '/' + href
-      
+
       # Make URLs absolute instead of relative
       $('a[href]').each () ->
         $a = $(@)
@@ -128,7 +128,7 @@ page.open encodeURI(inputUrl), (status) ->
         $a = $(@)
         href = toAbsoluteUrl($a.attr('src'))
         $a.attr('src', href)
-      
+
       serializeHtml = (callback) ->
         # Hack to serialize out the HTML (sent to the console)
         console.log 'Serializing (X)HTML back out from WebKit...'
@@ -160,17 +160,17 @@ page.open encodeURI(inputUrl), (status) ->
         xincludes = $('a[href].xinclude')
         leftToProcess = xincludes.length
         console.log "Remote deposit count #{leftToProcess}"
-  
+
         if leftToProcess == 0
           callback()
-        
+
         xincludes.each () ->
           $a = $(@)
           href = $a.attr('href')
           # PHIL href = href + "/index_auto_generated.cnxml"
-            
+
           console.log "Depositing #{href} via #{depositUrl} wrt #{id}"
-          
+
           # Perform the ajax call
           params = { new: href, original: id }
           options =
@@ -193,10 +193,10 @@ page.open encodeURI(inputUrl), (status) ->
         $nodes = $('svg')
         leftToProcess = $nodes.length
         console.log "svg2png count #{leftToProcess}"
-  
+
         if leftToProcess == 0
           callback()
-        
+
         $nodes.each () ->
           $node = $(@)
           node = @
@@ -210,7 +210,7 @@ page.open encodeURI(inputUrl), (status) ->
           # If no width is explicitly set on the SVG graphic then use the width in the browser
           $node.attr('width', "#{ $node.innerWidth() }px") if not $node.attr('width')?
           $node.attr('height', "#{ $node.innerHeight() }px") if not $node.attr('height')?
-            
+
           xmlAry = []
           window.dom2xhtml.serialize(node, xmlAry)
           svg = xmlAry.join('')
@@ -234,8 +234,7 @@ page.open encodeURI(inputUrl), (status) ->
               if leftToProcess == 0
                 callback()
 
-      svg2png () ->
-        recurseXincludes(serializeHtml)
+      recurseXincludes(serializeHtml)
 
     # Configure MathJax
     console.log "Waiting to finish processing math..."
@@ -243,7 +242,34 @@ page.open encodeURI(inputUrl), (status) ->
     mathJaxHack = () ->
       console.error "Could not load MathJax" if not window.MathJax
       try # Fails if MathJax isn't loaded into the page. So far, it's up to the HTML file to find/include MathJax
+
         MathJax.Hub.Queue () ->
+
+
+          console.log "Found #{$('.MathJax_SVG').length} SVG elements"
+
+          $('.MathJax_SVG').each (i, node) =>
+
+            # ChromeVox reads one word at a time and finishes "speaking"
+            # by sending the string "math".
+            accumulator = ''
+
+            # Read the MathML and squirrel it away in the MathML
+            cvox.AndroidTts.prototype.speak = (textString, foo, pers) =>
+
+              accumulator += textString + ' '
+              # if textString == 'math'
+              $(node).children().attr('role', 'region')
+              $(node).children().attr('aria-label', accumulator)
+
+
+            id = $(node).attr('id')
+            jax = MathJax.Hub.getJaxFor(id)
+            if jax
+              $math = jQuery(jax.root.toMathML())
+              cvox.Api.syncToNode($math[0], true)
+
+
           console.log "Finished Processing math!  "
           $('#MathJax_Message').remove() # This function gets called before MathJax removes the "Typesetting 100%" message
           # Copy all the SVG glyphs to multiple SVG elmeents
@@ -262,7 +288,7 @@ page.open encodeURI(inputUrl), (status) ->
           # This causes rsvg-convert to only render slivers of the graphic on the top of the image.
 
           # We have to do this _only_ for the SVG2PNG conversion. Otherwise the images look bad online
-          
+
           # Remove the hidden MathJax elements
           $('#MathJax_SVG_Hidden').remove()
           $('#MathJax_SVG_glyphs').parent().remove()

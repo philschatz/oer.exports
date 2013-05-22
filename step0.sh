@@ -38,6 +38,7 @@ echo "  <script src='/lib/Tangle/TangleKit/sprintf.js'></script>" >> ${HTML_FILE
 echo "  <script src='/lib/Tangle/TangleKit/BVTouchable.js'></script>" >> ${HTML_FILE}
 echo "  <script src='/lib/Tangle/TangleKit/TangleKit.js'></script>" >> ${HTML_FILE}
 echo "  <link rel='stylesheet' href='/lib/Tangle/TangleKit/TangleKit.css'/>" >> ${HTML_FILE}
+echo "  <script src='/lib/androidVoxDev.js'></script>" >> ${HTML_FILE}
 echo "  <script src='/lib/injector.js'></script>" >> ${HTML_FILE}
 
 echo "</head>" >> ${HTML_FILE}
