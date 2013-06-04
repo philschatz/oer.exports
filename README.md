@@ -2,6 +2,8 @@
 
 This is a mock implementation of a proposed API for generating PDFs and EPUBs in a federated OER Repository.
 
+We are also exploring making MathML accessible for the visually impaired by converting the MathML to SVG with aural descriptions using MathJax and ChromeVox.
+
 
 # Ooh, let me see!
 
