@@ -45,6 +45,9 @@ module.exports = exports = (argv) ->
       @history = []
 
     attachPromise: (@promise) ->
+      @promise.fail (err) =>
+        @notify('FAILED')
+        @notify(err)
       @promise.progress (message) =>
         @notify(message)
 
@@ -82,15 +85,54 @@ module.exports = exports = (argv) ->
         task.notify("STDERR: #{line}")
         console.error("STDERR: #{line}")
 
-  spawnPullCommits = (promise, gitUrl, branch) ->
-    # TODO: clone the repo if it does not exist yet
-    cwd = './data'
-    child = spawn('git', [ 'pull' ], {cwd:cwd})
-    child.stderr.on 'data', childLogger(true, promise)
+  cloneOrPull = (task, repoUser, repoName) ->
+    # 1. Check if the directory already exists
+    # 2. If yes, pull updates
+    # 3. Otherwise, clone the repo
 
     deferred = Q.defer()
-    child.on 'exit', (code) -> deferred.resolve()
+
+    # return fsExists(path.join(DATA_PATH, repoUser, repoName))
+    # .then (exists) ->
+    #   if exists
+    #     return spawnPullCommits(task, repoUser, repoName)
+    #   else
+    #     return spawnCloneRepo(task, repoUser, repoName)
+
+    fs.exists path.join(DATA_PATH, repoUser, repoName), (exists) ->
+      if exists
+        p = spawnPullCommits(task, repoUser, repoName)
+      else
+        p = spawnCloneRepo(task, repoUser, repoName)
+      p.fail (err) -> deferred.reject(err)
+      p.done (val) -> deferred.resolve(val)
+
     return deferred.promise
+
+
+  spawnHelper = (task, cmd, args=[], options={}) ->
+    child = spawn(cmd, args, options)
+    child.stderr.on 'data', errLogger(task)
+
+    deferred = Q.defer()
+    child.on 'exit', (code) ->
+      return deferred.reject('Returned nonzero error code') if 0 != code
+      deferred.resolve()
+    return deferred.promise
+
+  spawnCloneRepo = (task, repoUser, repoName) ->
+    url = "https://github.com/#{repoUser}/#{repoName}.git"
+    destPath = path.join(DATA_PATH, repoUser, repoName)
+
+    task.notify('Cloning repo')
+    return spawnHelper(task, 'git', [ 'clone', url, destPath ])
+
+
+  spawnPullCommits = (task, repoUser, repoName) ->
+    cwd = path.join(DATA_PATH, repoUser, repoName)
+
+    task.notify('Pulling remote updates')
+    return spawnHelper(task, 'git', [ 'pull' ], {cwd:cwd})
 
 
   fsReadDir   = () -> Q.nfapply(fs.readdir,   arguments)
@@ -121,7 +163,7 @@ module.exports = exports = (argv) ->
 
 
   # Concatenate all the HTML files in an EPUB together
-  assembleHTML = (task) ->
+  assembleHTML = (task, repoUser, repoName) ->
 
     allHtml = []
 
@@ -130,7 +172,7 @@ module.exports = exports = (argv) ->
     # 3. Read the ToC Navigation file (relative to the OPF file)
     # 4. Read each HTML file linked to from the ToC file (relative to the ToC file)
 
-    root = new URI(DATA_PATH + '/')
+    root = new URI(path.join(DATA_PATH, repoUser, repoName) + '/')
 
     readUri = (uri) ->
       task.notify {msg:'Reading file', uri:uri.toString()}
@@ -265,32 +307,29 @@ module.exports = exports = (argv) ->
     res.header('Content-Type', 'application/x-javascript; charset=utf-8')
     res.send(JQUERY_CODE)
 
-  app.get '/', (req, res, next) ->
-    payload = req.param('payload')
+  app.get '/submit/:repoUser/:repoName', (req, res, next) ->
+    # payload = req.param('payload')
 
-    # spawnPullCommits(promise)
-    # .fail( (err) -> console.error(err))
-    # .then () ->
-    #   assembleHTML(promise)
-    #   .then (html) ->
-    #     spawnGeneratePDF(promise, html)
+    repoUser = req.param('repoUser')
+    repoName = req.param('repoName')
 
     task = new Task()
-    promise = assembleHTML(task)
-    .fail( (err) -> console.error(err))
-    .then (htmlFragment) ->
-      html = """<?xml version='1.0' encoding='utf-8'?>
-                <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>
-                <html xmlns="http://www.w3.org/1999/xhtml">
-                  <head>
-                    <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8"/>
-                  </head>
-                  <body>
-                  #{htmlFragment}
-                  </body>
-                </html>"""
+    promise = cloneOrPull(task, repoUser, repoName)
+    .then () ->
+      return assembleHTML(task, repoUser, repoName)
+      .then (htmlFragment) ->
+        html = """<?xml version='1.0' encoding='utf-8'?>
+                  <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>
+                  <html xmlns="http://www.w3.org/1999/xhtml">
+                    <head>
+                      <meta http-equiv="Content-Type" content="application/xhtml+xml; charset=utf-8"/>
+                    </head>
+                    <body>
+                    #{htmlFragment}
+                    </body>
+                  </html>"""
 
-      return spawnGeneratePDF(html, task)
+        return spawnGeneratePDF(html, task)
 
     task.attachPromise(promise)
 
@@ -304,7 +343,6 @@ module.exports = exports = (argv) ->
     task = STATE
 
     return res.status(404).send('NOT FOUND. Try adding a commit Hook first.') if not task
-
     res.send(task.toJSON())
 
   app.get '/:repoUser/:repoName/pdf', (req, res) ->
