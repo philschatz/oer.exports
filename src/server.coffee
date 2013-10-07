@@ -34,6 +34,8 @@ module.exports = exports = (argv) ->
 
   # Enable easy-to-read stack traces
   #Q.longStackSupport = true
+  # Silently fail instead of taking down the webserver
+  Q.onerror = (err) -> console.error(err)
 
   DATA_PATH = path.join(__dirname, '..', 'data')
   JQUERY_PATH = path.join(__dirname, '..', 'node_modules/jquery-component/dist/jquery.js')
@@ -45,16 +47,26 @@ module.exports = exports = (argv) ->
       @history = []
 
     attachPromise: (@promise) ->
+      @promise.done () =>
+        @stopped = new Date()
+
       @promise.fail (err) =>
+        @stopped = new Date()
+
+      @promise.fail (err) =>
+        # For NodeJS errors convert them to JSON
+        if err.path
+          err = {msg: err.message, errno:err.errno, path:err.path, code:err.code}
         @notify('FAILED')
         @notify(err)
+
       @promise.progress (message) =>
         @notify(message)
 
     notify: (message) ->
       # Only keep the 50 most recent messages
-      if @history.length > 50
-        @history.splice(0,1)
+      #if @history.length > 50
+      #  @history.splice(0,1)
 
       @history.push(message)
 
@@ -70,20 +82,38 @@ module.exports = exports = (argv) ->
       }
 
   # Stores the Promise for a PDF
-  STATE = null
+  STATE = new class State
+    constructor: () ->
+      @state = {}
 
+    addTask: (task, repoUser, repoName) ->
+      @state["#{repoUser}/#{repoName}"] = task
+
+    getTask: (repoUser, repoName) ->
+      return @state["#{repoUser}/#{repoName}"]
+
+    toJSON: () ->
+      json = {}
+      _.each @state, (task, key) ->
+        value = _.omit(task, 'history')
+        json[key] = value
+
+      return json
 
   #### Spawns ####
   env =
     env: process.env
   env.env['PDF_BIN'] = argv.pdfgen
 
-  errLogger = (task) -> (data) ->
+  errLogger = (task, isError) -> (data) ->
     lines = data.toString().split('\n')
     for line in lines
       if line.length > 1
-        task.notify("STDERR: #{line}")
-        console.error("STDERR: #{line}")
+        if isError
+          task.notify("STDERR: #{line}")
+          console.error("STDERR: #{line}")
+        else
+          task.notify(line)
 
   cloneOrPull = (task, repoUser, repoName) ->
     # 1. Check if the directory already exists
@@ -112,7 +142,8 @@ module.exports = exports = (argv) ->
 
   spawnHelper = (task, cmd, args=[], options={}) ->
     child = spawn(cmd, args, options)
-    child.stderr.on 'data', errLogger(task)
+    child.stderr.on 'data', errLogger(task, true)
+    child.stdout.on 'data', errLogger(task, false)
 
     deferred = Q.defer()
     child.on 'exit', (code) ->
@@ -125,7 +156,7 @@ module.exports = exports = (argv) ->
     destPath = path.join(DATA_PATH, repoUser, repoName)
 
     task.notify('Cloning repo')
-    return spawnHelper(task, 'git', [ 'clone', url, destPath ])
+    return spawnHelper(task, 'git', [ 'clone', '--verbose', url, destPath ])
 
 
   spawnPullCommits = (task, repoUser, repoName) ->
@@ -133,6 +164,35 @@ module.exports = exports = (argv) ->
 
     task.notify('Pulling remote updates')
     return spawnHelper(task, 'git', [ 'pull' ], {cwd:cwd})
+
+
+  # From: http://stackoverflow.com/questions/13192660/nodejs-error-emfile
+  # Queuing reads and writes, so your nodejs script doesn't overwhelm system limits catastrophically
+  maxFilesInFlight = 100 # Set this value to some number safeish for your system
+  origRead = fs.readFile
+  origWrite = fs.writeFile
+  activeCount = 0
+  pending = []
+  wrapCallback = (cb) ->
+    ->
+      activeCount--
+      cb.apply this, Array::slice.call(arguments)
+      if activeCount < maxFilesInFlight and pending.length
+        console.log "Processing Pending read/write"
+        pending.shift()()
+
+  fs.readFile = ->
+    args = Array::slice.call(arguments)
+    if activeCount < maxFilesInFlight
+      if args[1] instanceof Function
+        args[1] = wrapCallback(args[1])
+      else args[2] = wrapCallback(args[2])  if args[2] instanceof Function
+      activeCount++
+      origRead.apply fs, args
+    else
+      console.log "Delaying read:", args[0]
+      pending.push ->
+        fs.readFile.apply fs, args
 
 
   fsReadDir   = () -> Q.nfapply(fs.readdir,   arguments)
@@ -175,8 +235,9 @@ module.exports = exports = (argv) ->
     root = new URI(path.join(DATA_PATH, repoUser, repoName) + '/')
 
     readUri = (uri) ->
-      task.notify {msg:'Reading file', uri:uri.toString()}
-      fsReadFile(uri.absoluteTo(root).toString())
+      filePath = decodeURIComponent(uri.absoluteTo(root).toString())
+      task.notify {msg:'Reading file', uri:filePath}
+      fsReadFile(filePath)
 
 
     # Check that a mimetype file exists
@@ -208,7 +269,8 @@ module.exports = exports = (argv) ->
               # 3. Read the ToC Navigation file (relative to the OPF file)
               task.notify('Reading ToC Navigation file')
               navUri = new URI(navPath)
-              return readUri(navUri.absoluteTo(opfUri))
+              navUri = navUri.absoluteTo(opfUri) # Make sure navUri is absolute because it is used later to load HTML files
+              return readUri(navUri)
               .then (navHtml) ->
                 return buildJQuery(navUri, navHtml)
                 .then ($) ->
@@ -219,7 +281,8 @@ module.exports = exports = (argv) ->
                     $a = $(a)
                     href = $a.attr('href')
 
-                    fileUri = (new URI(href)).absoluteTo(navUri)
+                    fileUri = new URI(href)
+                    fileUri = fileUri.absoluteTo(navUri)
                     return readUri(fileUri)
                     .then (html) ->
                       return buildJQuery(fileUri, html)
@@ -235,8 +298,10 @@ module.exports = exports = (argv) ->
                     return joinedHtml
 
 
-  spawnGeneratePDF = (html, task) ->
+  spawnGeneratePDF = (html, task, repoUser, repoName) ->
     deferred = Q.defer()
+
+    env = {cwd:path.join(DATA_PATH, repoUser, repoName)}
     child = spawn(argv.pdfgen, [ '--input=xhtml', '--verbose', '--output=/dev/stdout', '-' ], env)
     chunks = []
     chunkLen = 0
@@ -283,6 +348,7 @@ module.exports = exports = (argv) ->
     app.use(express.session({ secret: 'notsecret'}))
     app.use(app.router)
     app.use(express.static(path.join(__dirname, '..', 'static')))
+    app.use(express.static(path.join(__dirname, '..')))
   )
 
   ##### Set up standard environments. #####
@@ -300,19 +366,7 @@ module.exports = exports = (argv) ->
     app.use(express.errorHandler())
   )
 
-  #### Routes ####
-
-  # JSDOM seems to need a website. instead of pointing to jquery.com, use localhost to serve it
-  app.get '/jquery.js', (req, res, next) ->
-    res.header('Content-Type', 'application/x-javascript; charset=utf-8')
-    res.send(JQUERY_CODE)
-
-  app.get '/submit/:repoUser/:repoName', (req, res, next) ->
-    # payload = req.param('payload')
-
-    repoUser = req.param('repoUser')
-    repoName = req.param('repoName')
-
+  buildPdf = (repoUser, repoName) ->
     task = new Task()
     promise = cloneOrPull(task, repoUser, repoName)
     .then () ->
@@ -329,24 +383,54 @@ module.exports = exports = (argv) ->
                     </body>
                   </html>"""
 
-        return spawnGeneratePDF(html, task)
+        return spawnGeneratePDF(html, task, repoUser, repoName)
 
     task.attachPromise(promise)
 
-    STATE = task
+    STATE.addTask(task, repoUser, repoName)
+    return task
 
+  #### Routes ####
+
+  # app.get '/:repoUser/:repoName', (req, res, next) ->
+  #   res.redirect("/#{req.param('repoUser')}/#{req.param('repoName')}/")
+
+  app.get '/recent', (req, res) ->
+    res.send(STATE.toJSON())
+
+  app.get '/:repoUser/:repoName/', (req, res, next) ->
+    res.header('Content-Type', 'text/html')
+
+    # Read the file here so I don't have to restart for development
+    INDEX_FILE = fs.readFileSync(path.join(__dirname, '..', 'static', 'index.html'))
+
+    res.send(INDEX_FILE)
+
+  app.get '/:repoUser/:repoName/submit', (req, res, next) ->
+    # payload = req.param('payload')
+
+    repoUser = req.param('repoUser')
+    repoName = req.param('repoName')
+
+    task = buildPdf(repoUser, repoName)
     # Send OK
     res.send(task.toJSON())
 
 
   app.get '/:repoUser/:repoName/status', (req, res) ->
-    task = STATE
+    repoUser = req.param('repoUser')
+    repoName = req.param('repoName')
+
+    task = STATE.getTask(repoUser, repoName)
 
     return res.status(404).send('NOT FOUND. Try adding a commit Hook first.') if not task
     res.send(task.toJSON())
 
   app.get '/:repoUser/:repoName/pdf', (req, res) ->
-    task = STATE
+    repoUser = req.param('repoUser')
+    repoName = req.param('repoName')
+
+    task = STATE.getTask(repoUser, repoName)
 
     return res.status(404).send('NOT FOUND. Try adding a commit Hook first.') if not task
 
