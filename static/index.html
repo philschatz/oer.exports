@@ -61,17 +61,17 @@ a { color: black; }
       <span class="icon-bar"></span>
       <span class="icon-bar"></span>
     </button>
-    <a class="navbar-brand" href="#">Linotype PDF Generator</a>
+    <a class="navbar-brand" href="#">Continuous PDF Generator</a>
   </div>
 
   <!-- Collect the nav links, forms, and other content for toggling -->
   <div class="collapse navbar-collapse navbar-ex1-collapse">
     <ul class="nav navbar-nav">
-      <li class="active"><a href="#">How it Works</a></li>
+      <li><a href="#">How it Works</a></li>
       <li><a href="#">Add Me!</a></li>
     </ul>
     <ul class="nav navbar-nav navbar-right">
-      <li><a href="https://github.com/philschatz/linotype" target="_window">Fork this on GitHub!</a></li>
+      <li><a href="https://github.com/philschatz/pdf-ci" target="_window">Fork this on GitHub!</a></li>
     </ul>
   </div><!-- /.navbar-collapse -->
 </nav>
@@ -85,18 +85,7 @@ a { color: black; }
       </div>
       <table class="table table-hover">
         <tbody id="recent-builds">
-          <tr><td><i class="icon-ok-sign status success"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr><td><i class="icon-ok-sign status success"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr class="active"><td><i class="icon-spinner icon-spin status active"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr class="active"><td><i class="icon-spinner icon-spin status active"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr class="danger"><td><i class="icon-remove-sign status danger"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr class="danger"><td><i class="icon-remove-sign status danger"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr class="active"><td><i class="icon-spinner icon-spin status active"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr class="active"><td><i class="icon-spinner icon-spin status active"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr><td><i class="icon-ok-sign status success"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr><td><i class="icon-ok-sign status success"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr><td><i class="icon-ok-sign status success"></i> <a href="/test/test">test/test</a></td></tr>
-          <tr><td><i class="icon-ok-sign status success"></i> <a href="/test/test">test/test</a></td></tr>
+          <tr><td><i class="icon-spinner icon-spin"></i> Loading?</td></tr>
         </tbody>
       </table>
     </div>
@@ -120,7 +109,7 @@ a { color: black; }
       </div>
       <div class="row">
         <div class="col-md-1 field-label">Updated:</div>
-        <div class="col-md-2 field-value" id="build-completed"><time datetime="2013-01-01">?? hours ago</time></div>
+        <div class="col-md-2 field-value" id="build-completed"><time datetime="">?? hours ago</time></div>
       </div>
       <div class="row">
         <div class="col-md-1 field-label">Duration:</div>
@@ -129,12 +118,7 @@ a { color: black; }
     </div>
 
     <div id="build-log">
-      <div class="line">a line of output</div>
-      <div class="line">a line of output</div>
-      <div class="line">a line of output</div>
-      <div class="line">a line of output</div>
-      <div class="line">a line of output</div>
-      <div class="line">a line of output</div>
+      <div><i class="icon-spinner icon-spin"></i> Loading?</div>
     </div>
 
   </div>
@@ -144,16 +128,16 @@ a { color: black; }
 //<!--
 
 ICON_STATUS_CLASSES = {
-  'UNKNOWN':  'icon-question-sign status unknown',
+  'UNKNOWN':    'icon-question-sign status unknown',
   'COMPLETED':  'icon-ok-sign status success',
-  'PENDING':   'icon-spinner icon-spin status active',
-  'failed':   'icon-remove-sign status danger'
+  'PENDING':    'icon-spinner icon-spin status active',
+  'FAILED':     'icon-remove-sign status danger'
 };
 
 RECENT_ROW_STATUS_CLASSES = {
   'COMPLETED':  '',
-  'PENDING':   'active',
-  'failed':   'danger'
+  'PENDING':    'active',
+  'FAILED':     'danger'
 };
 
 

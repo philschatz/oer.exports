@@ -72,9 +72,9 @@ module.exports = exports = (argv) ->
 
     toJSON: () ->
       status = 'UNKNOWN'
-      status = 'COMPLETED' if @promise.isResolved()
+      status = 'COMPLETED' if @promise.isFulfilled()
       status = 'FAILED'    if @promise.isRejected()
-      status = 'PENDING'   if not @promise.isFulfilled()
+      status = 'PENDING'   if not @promise.isResolved()
       return {
         created:  @created
         history:  @history
