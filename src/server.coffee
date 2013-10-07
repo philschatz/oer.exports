@@ -225,7 +225,8 @@ module.exports = exports = (argv) ->
   # Concatenate all the HTML files in an EPUB together
   assembleHTML = (task, repoUser, repoName) ->
 
-    allHtml = []
+    allHtmlFileOrder = []
+    allHtml = {}
 
     # 1. Read the META-INF/container.xml file
     # 2. Read the first OPF file
@@ -283,17 +284,25 @@ module.exports = exports = (argv) ->
 
                     fileUri = new URI(href)
                     fileUri = fileUri.absoluteTo(navUri)
+
+                    # Remember the order of files so they can be concatenated again
+                    allHtmlFileOrder.push(fileUri.toString())
+
                     return readUri(fileUri)
                     .then (html) ->
                       return buildJQuery(fileUri, html)
                       .then ($) ->
-                        allHtml.push($('body')[0].innerHTML)
+                        allHtml[fileUri.toString()] = $('body')[0].innerHTML
 
                   # Concatenate all the HTML once they have all been parsed
                   return Q.all(anchorPromises)
                   .then () ->
-                    task.notify {msg:'Combining HTML files', count:allHtml.length}
-                    joinedHtml = allHtml.join('\n')
+                    task.notify {msg:'Combining HTML files', count:allHtmlFileOrder.length}
+
+                    htmls = []
+                    for key in allHtmlFileOrder
+                      htmls.push(allHtml[key])
+                    joinedHtml = htmls.join('\n')
                     task.notify {msg:'Combined HTML files', size:joinedHtml.length}
                     return joinedHtml
 
