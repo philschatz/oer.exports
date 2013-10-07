@@ -16,7 +16,6 @@ module.exports = exports = (argv) ->
   jsdom       = require('jsdom')
   URI         = require('URIjs')
   url         = require('url')
-  hbs         = require('hbs')
   EventEmitter = require('events').EventEmitter
 
   # jsdom only seems to like REMOTE urls to scripts (like jQuery)
@@ -38,7 +37,7 @@ module.exports = exports = (argv) ->
   Q.onerror = (err) -> console.error(err)
 
   DATA_PATH = path.join(__dirname, '..', 'data')
-  JQUERY_PATH = path.join(__dirname, '..', 'node_modules/jquery-component/dist/jquery.js')
+  JQUERY_PATH = path.join(__dirname, '..', 'bower_components/jquery/jquery.js')
   JQUERY_CODE = fs.readFileSync(JQUERY_PATH, 'utf-8')
 
   class Task
@@ -178,7 +177,7 @@ module.exports = exports = (argv) ->
       activeCount--
       cb.apply this, Array::slice.call(arguments)
       if activeCount < maxFilesInFlight and pending.length
-        console.log "Processing Pending read/write"
+        # console.log "Processing Pending read/write"
         pending.shift()()
 
   fs.readFile = ->
@@ -190,7 +189,7 @@ module.exports = exports = (argv) ->
       activeCount++
       origRead.apply fs, args
     else
-      console.log "Delaying read:", args[0]
+      # console.log "Delaying read:", args[0]
       pending.push ->
         fs.readFile.apply fs, args
 
@@ -346,9 +345,7 @@ module.exports = exports = (argv) ->
   argv = require('./defaultargs')(argv)
 
   #### Express configuration ####
-  # Set up all the standard express server options,
-  # including hbs to use handlebars/mustache templates
-  # saved with a .html extension, and no layout.
+  # Set up all the standard express server options
   app.configure( ->
     app.set('view options', layout: false)
     app.use(express.cookieParser())

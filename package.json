@@ -1,6 +1,6 @@
 {
-  "name": "oer.repo",
-  "version": "0.0.1a",
+  "name": "pdf-ci",
+  "version": "0.0.0",
   "main": "index.js",
   "private": true,
   "bin": {
@@ -9,18 +9,15 @@
   "dependencies": {
     "coffee-script": "~1.2",
     "express": "~2.5",
-    "hbs": "~1.0.1",
     "optimist": "~0.3",
     "jsdom": "~0.2",
-    "passport": "~0.1.5",
-    "passport-openid": "~0.1.1",
-    "adm-zip": "~0.1.5",
     "q": "~0.8.12",
     "underscore": "~1.5.2",
     "URIjs": "~1.11.2",
     "bower": "~1.2.7"
   },
   "scripts": {
+    "install": "bower install",
     "test": "./node_modules/mocha/bin/mocha"
   },
   "devDependencies": {
@@ -33,6 +30,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/philschatz/oerpub.repo"
+    "url": "https://github.com/philschatz/pdf-ci"
   }
 }
